@@ -97,3 +97,16 @@ def q_learning(env, num_episodes, discount_factor=1.0, alpha=0.5, epsilon=0.1):
 
     return Q, rewards, lengths
 
+
+class QLearningAgent:
+    def __init__(self, q_table, epsilon, n_actions):
+        self.q_table = q_table
+        self.epsilon = epsilon
+        self.n_actions = n_actions
+
+    def act(self, obs):
+        action_probs = np.ones(self.n_actions, dtype=float) * self.epsilon / self.n_actions
+        best_action = np.argmax(self.q_table[obs])
+        action_probs[best_action] += (1.0 - self.epsilon)
+        action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
+        return action

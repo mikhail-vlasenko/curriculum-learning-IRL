@@ -389,8 +389,8 @@ class GridWorld(object):
             else:
                 return 'x'
         print()
-        for i in range(5):
-            for j in range(5):
+        for i in range(self.height):
+            for j in range(self.width):
                 t = (i, j)
                 if t not in q_table:
                     print('?', end=' ')

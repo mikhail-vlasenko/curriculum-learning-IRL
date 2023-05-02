@@ -1,6 +1,6 @@
 import numpy as np
 from envs import small_gridworld as gridworld
-from algos.dqn import DQN
+from rl_algos.dqn import DQN
 
 
 def dqn_on_gridworld():

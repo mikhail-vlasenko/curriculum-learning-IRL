@@ -1,6 +1,6 @@
 import numpy as np
 import gymnasium as gym
-from algos.q_learning import q_learning
+from rl_algos.q_learning import q_learning
 import seaborn as sns
 import matplotlib.pyplot as plt
 
