@@ -5,6 +5,7 @@
 # @email luyiren [at] seas [dot] upenn [dot] edu
 #
 # MIT License
+from collections import namedtuple
 
 import numpy as np
 
@@ -33,6 +34,8 @@ class GridWorld(object):
         self.neighbors = [(0, 1), (0, -1), (1, 0), (-1, 0), (0, 0)]
         self.actions = [0, 1, 2, 3, 4]
         self.n_actions = len(self.actions)
+        Space = namedtuple('space', ['n'])
+        self.action_space = Space(self.n_actions)
         # self.dirs = {0: 's', 1: 'r', 2: 'l', 3: 'd', 4: 'u'}
         self.dirs = {0: 'r', 1: 'l', 2: 'd', 3: 'u', 4: 's'}
         #              right,    left,   down,   up ,   stay
@@ -189,7 +192,7 @@ class GridWorld(object):
             self._cur_state = (0, 0)
         else:
             self._cur_state = start_pos
-        return self._cur_state
+        return self._cur_state, {}
 
     def get_current_state(self):
         return self._cur_state
@@ -210,8 +213,7 @@ class GridWorld(object):
         self.time += 1
         if self.is_terminal(self._cur_state):
             self._is_done = True
-            # return self._cur_state, action, self._cur_state, self.get_reward(self._cur_state), True
-            return self._cur_state, self.get_reward(self._cur_state), True, {}
+            return self._cur_state, self.get_reward(self._cur_state), True, True, {}
 
         st_prob = self.get_transition_states_and_probs(self._cur_state, action)
 
@@ -220,8 +222,7 @@ class GridWorld(object):
         next_state = st_prob[sampled_idx][0]
         reward = self.get_reward(last_state)
         self._cur_state = next_state
-        # return last_state, action, next_state, reward, False
-        return next_state, reward, False, {}
+        return next_state, reward, False, False, {}
 
     ###########################################
     # Policy Evaluation for Model-free Agents #
@@ -374,3 +375,25 @@ class GridWorld(object):
           2d column-major position
         """
         return (idx % self.height, idx / self.height)
+
+    def print_q_table(self, q_table):
+        def convert_arrows(num):
+            if num == 3:
+                return '↑'
+            elif num == 2:
+                return '↓'
+            elif num == 1:
+                return '←'
+            elif num == 0:
+                return '→'
+            else:
+                return 'x'
+        print()
+        for i in range(5):
+            for j in range(5):
+                t = (i, j)
+                if t not in q_table:
+                    print('?', end=' ')
+                else:
+                    print(convert_arrows(np.argmax(q_table[t])), end=' ')
+            print()
