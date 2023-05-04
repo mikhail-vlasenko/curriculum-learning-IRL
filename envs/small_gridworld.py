@@ -6,6 +6,7 @@
 #
 # MIT License
 from collections import namedtuple
+from gymnasium.spaces import Discrete
 
 import numpy as np
 

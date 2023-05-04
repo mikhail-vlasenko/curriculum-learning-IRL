@@ -1,9 +1,14 @@
+import pickle
+
 import numpy as np
 import gymnasium as gym
+from tqdm import tqdm
+
 from envs import small_gridworld as gridworld
-from rl_algos.q_learning import q_learning
+from rl_algos.q_learning import q_learning, QLearningAgent
 import seaborn as sns
 import matplotlib.pyplot as plt
+import random
 
 
 def main():
@@ -23,6 +28,46 @@ def main():
     sns.lineplot(x=np.arange(len(lengths)), y=lengths, label='lengths')
     plt.legend()
     plt.show()
+
+    epsilon = 0.2
+    agent = QLearningAgent(q_table, epsilon, env.action_space.n)
+    states, info = env.reset()
+    dataset = []
+    episode = {'states': [], 'actions': []}
+    episode_cnt = 0
+
+    # Fetch Shapes
+    # n_actions = env.action_space.n
+    # obs_shape = env.observation_space.shape
+    # state_shape = obs_shape[:-1]
+    # in_channels = obs_shape[-1]
+
+    # Load Pretrained PPO
+    max_steps = 25
+    n_demos = 100
+    for i in tqdm(range((max_steps - 1) * n_demos)):
+        action = agent.act(states)
+        next_states, reward, terminated, truncated, info = env.step(action)
+        done = terminated or truncated
+        episode['states'].append(states)
+        # Note: Actions currently append as arrays and not integers!
+        episode['actions'].append(action)
+
+        if done:
+            next_states, info = env.reset()
+            dataset.append(episode)
+            episode = {'states': [], 'actions': []}
+            episode_cnt += 1
+
+        # Prepare state input for next time step
+        states = next_states
+        # states_tensor = torch.tensor(states).float().to(device)
+
+    print('Sample:')
+    for _ in range(2):
+        print(dataset[random.randint(0, len(dataset) - 1)])
+    pickle.dump(dataset, open('./demonstrations/try1' + '.pk', 'wb'))
+    print(f'Dumped {episode_cnt} episodes to ./demonstrations/try1.pk')
 
 
 if __name__ == '__main__':
