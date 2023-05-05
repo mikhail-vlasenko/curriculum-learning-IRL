@@ -1,0 +1,6 @@
+numpy~=1.24.3
+gymnasium~=0.28.1
+seaborn~=0.12.2
+matplotlib~=3.7.1
+tqdm~=4.65.0
+torch~=2.0.0
