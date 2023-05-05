@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import value_iteration as value_iteration
+from utils import value_iteration as value_iteration
 
-from utils import *
+from utils.utils import *
 
 
 class DeepIRLFC(nn.Module):

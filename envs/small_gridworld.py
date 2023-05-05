@@ -35,8 +35,7 @@ class GridWorld(object):
         self.neighbors = [(0, 1), (0, -1), (1, 0), (-1, 0), (0, 0)]
         self.actions = [0, 1, 2, 3, 4]
         self.n_actions = len(self.actions)
-        Space = namedtuple('space', ['n'])
-        self.action_space = Space(self.n_actions)
+        self.action_space = Discrete(self.n_actions)
         # self.dirs = {0: 's', 1: 'r', 2: 'l', 3: 'd', 4: 'u'}
         self.dirs = {0: 'r', 1: 'l', 2: 'd', 3: 'u', 4: 's'}
         #              right,    left,   down,   up ,   stay

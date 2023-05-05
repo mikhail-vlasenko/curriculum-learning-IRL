@@ -1,8 +1,9 @@
-import gridworld as gridworld
+import wandb
+
+from envs.small_gridworld import GridWorld
 from tqdm import tqdm
-from ppo import PPO, TrajectoryDataset, update_policy
-from envs.gym_wrapper import *
-from airl import *
+from irl_algos.airl import *
+from rl_algos.ppo_from_airl import *
 import torch
 import numpy as np
 import pickle
@@ -15,7 +16,7 @@ if __name__ == '__main__':
     expert_trajectories = pickle.load(open('../demonstrations/ppo_demos_v3_[0,1,0,1].pk', 'rb'))
 
     # Init WandB & Parameters
-    config = {
+    wandb.init(project='AIRL', config={
         'env_id': 'randomized_v3',
         'env_steps': 6e6,
         'batchsize_discriminator': 512,
@@ -25,7 +26,8 @@ if __name__ == '__main__':
         'gamma': 0.999,
         'epsilon': 0.1,
         'ppo_epochs': 5
-    }
+    })
+    config = wandb.config
 
     # Create Environment
     H = 5
@@ -35,14 +37,14 @@ if __name__ == '__main__':
     rmap_gt[H - 2, W - 2] = 5
     rmap_gt[1, 1] = 1
 
-    env = gridworld.GridWorld(rmap_gt, {}, 1 - ACT_RAND)
+    env = GridWorld(rmap_gt, {}, 1 - ACT_RAND)
     env.show_grid()
     states = env.reset()
     states_tensor = torch.tensor(states).float().to(device)
 
     # Fetch Shapes
-    n_actions = vec_env.action_space.n
-    obs_shape = vec_env.observation_space.shape
+    n_actions = env.action_space.n
+    obs_shape = env.observation_space.shape
     state_shape = obs_shape[:-1]
     in_channels = obs_shape[-1]
 
@@ -60,7 +62,8 @@ if __name__ == '__main__':
 
         # Act
         actions, log_probs = ppo.act(states_tensor)
-        next_states, rewards, done, info = vec_env.step(actions)
+        next_states, rewards, terminated, truncated, info = env.step(actions)
+        done = terminated or truncated
 
         # Log Objectives
         objective_logs.append(rewards)
@@ -104,5 +107,5 @@ if __name__ == '__main__':
         states = next_states.copy()
         states_tensor = torch.tensor(states).float().to(device)
 
-    vec_env.close()
+    # env.close()
     torch.save(discriminator.state_dict(), 'saved_models/discriminator_v3_[0,1,0,1].pt')
