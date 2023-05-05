@@ -1,3 +1,5 @@
+# https://github.com/Farama-Foundation/gym-examples
+
 from setuptools import setup
 
 setup(

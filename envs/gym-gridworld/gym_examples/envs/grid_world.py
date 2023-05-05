@@ -15,8 +15,8 @@ class GridWorldEnv(gym.Env):
         # Each location is encoded as an element of {0, ..., `size`}^2, i.e. MultiDiscrete([size, size]).
         self.observation_space = spaces.Dict(
             {
-                "agent": spaces.Box(0, size - 1, shape=(2,), dtype=int),
-                "target": spaces.Box(0, size - 1, shape=(2,), dtype=int),
+                "agent": spaces.Box(0, size - 1, shape=(2,), dtype=np.int32),
+                "target": spaces.Box(0, size - 1, shape=(2,), dtype=np.int32),
             }
         )
 

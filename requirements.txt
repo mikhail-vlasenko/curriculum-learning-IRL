@@ -4,3 +4,6 @@ seaborn~=0.12.2
 matplotlib~=3.7.1
 tqdm~=4.65.0
 torch~=2.0.0
+setuptools~=65.5.1
+pygame~=2.4.0
+wandb~=0.15.1

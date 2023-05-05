@@ -9,24 +9,38 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 
 class PPO(nn.Module):
-    def __init__(self, state_shape, in_channels=6, n_actions=9):
+    def __init__(self, state_shape, in_channels=6, n_actions=9, simple_architecture=False):
         super(PPO, self).__init__()
 
-        # General Parameters
         self.state_shape = state_shape
-        self.in_channels = in_channels
+        self.simple_architecture = simple_architecture
 
-        # Network Layers
-        self.l1 = nn.Conv2d(in_channels=self.in_channels, out_channels=64, kernel_size=2)
-        self.l2 = nn.Conv2d(in_channels=64, out_channels=256, kernel_size=2)
-        self.actor_l3 = nn.Conv2d(in_channels=256, out_channels=32, kernel_size=2)
-        self.critic_l3 = nn.Conv2d(in_channels=256, out_channels=32, kernel_size=2)
-        self.actor_out = nn.Linear(32*(state_shape[0]-3)*(state_shape[1]-3), n_actions)
-        self.critic_out = nn.Linear(32*(state_shape[0]-3)*(state_shape[1]-3), 1)
+        if self.simple_architecture:
+            self.l1 = nn.Linear(state_shape, 32)
+            self.actor_out = nn.Linear(32, n_actions)
+            self.critic_out = nn.Linear(32, 1)
+        else:
+            self.in_channels = in_channels
+
+            # Network Layers
+            self.l1 = nn.Conv2d(in_channels=self.in_channels, out_channels=64, kernel_size=2)
+            self.l2 = nn.Conv2d(in_channels=64, out_channels=256, kernel_size=2)
+            self.actor_l3 = nn.Conv2d(in_channels=256, out_channels=32, kernel_size=2)
+            self.critic_l3 = nn.Conv2d(in_channels=256, out_channels=32, kernel_size=2)
+            self.actor_out = nn.Linear(32*(state_shape[0]-3)*(state_shape[1]-3), n_actions)
+            self.critic_out = nn.Linear(32*(state_shape[0]-3)*(state_shape[1]-3), 1)
+
         self.relu = nn.ReLU()
         self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, x):
+        if self.simple_architecture:
+            x = self.relu(self.l1(x))
+            x_actor = self.softmax(self.actor_out(x))
+            x_critic = self.critic_out(x)
+
+            return x_actor, x_critic
+
         x = x.view(-1, self.in_channels, self.state_shape[0], self.state_shape[1])
         x = self.relu(self.l1(x))
         x = self.relu(self.l2(x))
@@ -46,7 +60,7 @@ class PPO(nn.Module):
         return action.detach().cpu().numpy(), m.log_prob(action).detach().cpu().numpy()
 
     def evaluate_trajectory(self, tau):
-        trajectory_states = torch.tensor(tau['states']).float().to(device)
+        trajectory_states = torch.tensor(tau['states']).float().to(device)  # says its super slow
         trajectory_actions = torch.tensor(tau['actions']).to(device)
         action_probabilities, critic_values = self.forward(trajectory_states)
         dist = Categorical(action_probabilities)
@@ -101,7 +115,7 @@ class TrajectoryDataset:
         # Calculates achieved objectives objectives in self.trajectories
         objective_logs = []
         for i, tau in enumerate(self.trajectories):
-            objective_logs.append(list(np.array(tau['logs']).sum(axis=0)))
+            objective_logs.append(sum(tau['logs']))
 
         return np.array(objective_logs)
 
