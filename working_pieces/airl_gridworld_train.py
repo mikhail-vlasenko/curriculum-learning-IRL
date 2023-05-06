@@ -1,27 +1,29 @@
 import wandb
 
-from envs.small_gridworld import GridWorld
 from tqdm import tqdm
 from irl_algos.airl import *
 from rl_algos.ppo_from_airl import *
 import torch
 import numpy as np
 import pickle
+import gym_examples
+from gym_examples.wrappers import RelativePosition
+import gymnasium as gym
 
 # Device Check
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 if __name__ == '__main__':
     # Load demonstrations
-    expert_trajectories = pickle.load(open('../demonstrations/ppo_demos_v3_[0,1,0,1].pk', 'rb'))
+    expert_trajectories = pickle.load(open('../demonstrations/ppo_demos.pk', 'rb'))
 
     # Init WandB & Parameters
-    wandb.init(project='AIRL', config={
+    wandb.init(project='AIRL', dir='../wandb', config={
         'env_id': 'randomized_v3',
-        'env_steps': 6e6,
-        'batchsize_discriminator': 512,
+        'env_steps': 10000,
+        'batchsize_discriminator': 64,
         'batchsize_ppo': 12,
-        'n_workers': 12,
+        'n_workers': 1,
         'entropy_reg': 0,
         'gamma': 0.999,
         'epsilon': 0.1,
@@ -30,27 +32,18 @@ if __name__ == '__main__':
     config = wandb.config
 
     # Create Environment
-    H = 5
-    W = 5
-    ACT_RAND = 0.0
-    rmap_gt = np.zeros([H, W])
-    rmap_gt[H - 2, W - 2] = 5
-    rmap_gt[1, 1] = 1
-
-    env = GridWorld(rmap_gt, {}, 1 - ACT_RAND)
-    env.show_grid()
-    states = env.reset()
+    env = gym.make('gym_examples/GridWorld-v0', render_mode=None)
+    env = RelativePosition(env)
+    states, info = env.reset()
     states_tensor = torch.tensor(states).float().to(device)
 
     # Fetch Shapes
     n_actions = env.action_space.n
     obs_shape = env.observation_space.shape
-    state_shape = obs_shape[:-1]
-    in_channels = obs_shape[-1]
 
     # Initialize Models
-    ppo = PPO(state_shape=state_shape, n_actions=n_actions, in_channels=in_channels).to(device)
-    discriminator = DiscriminatorMLP(state_shape=state_shape, in_channels=in_channels).to(device)
+    ppo = PPO(state_shape=obs_shape[0], n_actions=n_actions, simple_architecture=True).to(device)
+    discriminator = DiscriminatorMLP(state_shape=obs_shape[0], simple_architecture=True).to(device)
     optimizer = torch.optim.Adam(ppo.parameters(), lr=5e-4)
     optimizer_discriminator = torch.optim.Adam(discriminator.parameters(), lr=5e-5)
     dataset = TrajectoryDataset(batch_size=config.batchsize_ppo, n_workers=config.n_workers)
@@ -61,8 +54,8 @@ if __name__ == '__main__':
     for t in tqdm(range((int(config.env_steps/config.n_workers)))):
 
         # Act
-        actions, log_probs = ppo.act(states_tensor)
-        next_states, rewards, terminated, truncated, info = env.step(actions)
+        action, log_probs = ppo.act(states_tensor)
+        next_states, rewards, terminated, truncated, info = env.step(action)
         done = terminated or truncated
 
         # Log Objectives
@@ -72,17 +65,18 @@ if __name__ == '__main__':
         airl_state = torch.tensor(states).to(device).float()
         airl_next_state = torch.tensor(next_states).to(device).float()
         airl_action_prob = torch.exp(torch.tensor(log_probs)).to(device).float()
-        airl_rewards = discriminator.predict_reward(airl_state, airl_next_state, config.gamma, airl_action_prob)
-        airl_rewards = list(airl_rewards.detach().cpu().numpy() * [0 if i else 1 for i in done])
+        airl_rewards = discriminator.predict_reward(airl_state.unsqueeze(0), airl_next_state.unsqueeze(0), config.gamma, airl_action_prob)
+        # airl_rewards = list(airl_rewards.detach().cpu().numpy() * (0 if done else 1))
+        airl_rewards = list(airl_rewards.detach().cpu().numpy())
 
         # Save Trajectory
-        train_ready = dataset.write_tuple(states, actions, airl_rewards, done, log_probs)
+        train_ready = dataset.write_tuple([states], [action], airl_rewards, [done], [log_probs])
 
         if train_ready:
             # Log Objectives
-            objective_logs = np.array(objective_logs).sum(axis=0)
-            for i in range(objective_logs.shape[1]):
-                wandb.log({'Obj_' + str(i): objective_logs[:, i].mean()})
+            # objective_logs = dataset.log_objectives()
+            # for ret in objective_logs:
+            #     wandb.log({'Reward': ret})
             objective_logs = []
 
             # Update Models
@@ -103,9 +97,11 @@ if __name__ == '__main__':
                 wandb.log({'Returns': ret})
             dataset.reset_trajectories()
 
+        if done:
+            next_states, info = env.reset()
         # Prepare state input for next time step
         states = next_states.copy()
         states_tensor = torch.tensor(states).float().to(device)
 
-    # env.close()
-    torch.save(discriminator.state_dict(), 'saved_models/discriminator_v3_[0,1,0,1].pt')
+    torch.save(discriminator.state_dict(), '../saved_models/discriminator.pt')
+    env.close()

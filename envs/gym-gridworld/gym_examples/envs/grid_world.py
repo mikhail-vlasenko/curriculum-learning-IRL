@@ -81,6 +81,7 @@ class GridWorldEnv(gym.Env):
         return observation, info
 
     def step(self, action):
+        # terminate after some steps
         # Map the action (element of {0,1,2,3}) to the direction we walk in
         direction = self._action_to_direction[action]
         # We use `np.clip` to make sure we don't leave the grid

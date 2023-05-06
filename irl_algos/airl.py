@@ -9,20 +9,27 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 
 class DiscriminatorMLP(nn.Module):
-    def __init__(self, state_shape, in_channels=6):
+    def __init__(self, state_shape, in_channels=6, simple_architecture=False):
         super(DiscriminatorMLP, self).__init__()
 
         self.state_shape = state_shape
         self.in_channels = in_channels
+        self.simple_architecture = simple_architecture
 
         # Layers
         # self.action_embedding = nn.Linear(n_actions, state_shape[0]*state_shape[1])
-        self.reward_l1 = nn.Linear(self.in_channels*self.state_shape[0]*self.state_shape[1], 256)
+        if self.simple_architecture:
+            self.reward_l1 = nn.Linear(state_shape, 256)
+        else:
+            self.reward_l1 = nn.Linear(self.in_channels*self.state_shape[0]*self.state_shape[1], 256)
         self.reward_l2 = nn.Linear(256, 512)
         self.reward_l3 = nn.Linear(512, 256)
         self.reward_out = nn.Linear(256, 1)
 
-        self.value_l1 = nn.Linear(self.in_channels*self.state_shape[0]*self.state_shape[1], 256)
+        if self.simple_architecture:
+            self.value_l1 = nn.Linear(state_shape, 256)
+        else:
+            self.value_l1 = nn.Linear(self.in_channels*self.state_shape[0]*self.state_shape[1], 256)
         self.value_l2 = nn.Linear(256, 512)
         self.value_l3 = nn.Linear(512, 256)
         self.value_out = nn.Linear(256, 1)
@@ -239,8 +246,11 @@ def training_sampler(expert_trajectories, policy_trajectories, ppo, batch_size, 
         else:
             selected_trajectories = policy_trajectories
 
-        random_tau_idx = np.random.randint(len(selected_trajectories))
-        random_tau = selected_trajectories[random_tau_idx]['states']
+        random_tau = []
+        while len(random_tau) < 2:
+            random_tau_idx = np.random.randint(len(selected_trajectories))
+            random_tau = selected_trajectories[random_tau_idx]['states']
+
         random_state_idx = np.random.randint(len(random_tau)-1)
         state = random_tau[random_state_idx]
         next_state = random_tau[random_state_idx+1]

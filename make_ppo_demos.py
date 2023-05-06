@@ -50,9 +50,7 @@ if TRAIN:
     states_tensor = torch.tensor(states).float().to(device)
 
     for t in tqdm(range(int(config.env_steps / config.n_workers))):
-        actions, log_probs = ppo.act(states_tensor)
-        action = actions.item()
-        log_probs = log_probs.item()
+        action, log_probs = ppo.act(states_tensor)
         next_states, rewards, terminated, truncated, info = env.step(action)
         done = terminated | truncated
         # scalarized_rewards = [sum([config.lambd[i] * r[i] for i in range(len(r))]) for r in rewards]
@@ -69,6 +67,8 @@ if TRAIN:
                 wandb.log({'Returns': ret})
             dataset.reset_trajectories()
 
+        if done:
+            next_states, info = env.reset()
         # Prepare state input for next time step
         states = next_states.copy()
         states_tensor = torch.tensor(states).float().to(device)
@@ -87,9 +87,7 @@ episode_cnt = 0
 
 
 for t in tqdm(range(n_demo_steps)):
-    actions, log_probs = ppo.act(states_tensor)
-    action = actions.item()
-    log_probs = log_probs.item()
+    action, log_probs = ppo.act(states_tensor)
     next_states, reward, terminated, truncated, info = env.step(action)
     done = terminated or truncated
     episode['states'].append(states)
