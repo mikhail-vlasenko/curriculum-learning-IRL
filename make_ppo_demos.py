@@ -34,12 +34,12 @@ ppo = PPO(state_shape=obs_shape[0], n_actions=n_actions, simple_architecture=Tru
 if TRAIN:
     wandb.init(project='PPO', config={
         'env_id': 'randomized_v3',
-        'env_steps': 50000,
-        'batchsize_ppo': 12,
+        'env_steps': 20000,
+        'batchsize_ppo': 32,
         'n_workers': 1,
-        'lr_ppo': 3e-4,
+        'lr_ppo': 1e-3,
         'entropy_reg': 0.05,
-        'gamma': 0.999,
+        'gamma': 0.8,
         'epsilon': 0.1,
         'ppo_epochs': 5
     })
@@ -60,11 +60,10 @@ if TRAIN:
         if train_ready:
             update_policy(ppo, dataset, optimizer, config.gamma, config.epsilon, config.ppo_epochs,
                           entropy_reg=config.entropy_reg)
-            objective_logs = dataset.log_objectives()
-            for ret in objective_logs:
-                wandb.log({'Reward': ret})
-            for ret in dataset.log_returns():
-                wandb.log({'Returns': ret})
+            wandb.log({'Reward': dataset.log_objectives().mean()})
+            wandb.log({'Returns': dataset.log_returns().mean()})
+            wandb.log({'Lengths': dataset.log_lengths().mean()})
+
             dataset.reset_trajectories()
 
         if done:

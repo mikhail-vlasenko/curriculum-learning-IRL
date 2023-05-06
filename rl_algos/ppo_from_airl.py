@@ -109,15 +109,22 @@ class TrajectoryDataset:
         returns = [0 for i in range(len(self.trajectories))]
         for i, tau in enumerate(self.trajectories):
             returns[i] = sum(tau['rewards'])
-        return returns
+        return np.array(returns)
 
     def log_objectives(self):
-        # Calculates achieved objectives objectives in self.trajectories
+        # Calculates achieved objectives in self.trajectories
         objective_logs = []
         for i, tau in enumerate(self.trajectories):
             objective_logs.append(sum(tau['logs']))
 
         return np.array(objective_logs)
+
+    def log_lengths(self):
+        lengths = []
+        for tau in self.trajectories:
+            lengths.append(len(tau['rewards']))
+
+        return np.array(lengths)
 
 
 def g_clip(epsilon, A):

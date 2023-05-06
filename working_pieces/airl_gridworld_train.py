@@ -20,12 +20,12 @@ if __name__ == '__main__':
     # Init WandB & Parameters
     wandb.init(project='AIRL', dir='../wandb', config={
         'env_id': 'randomized_v3',
-        'env_steps': 10000,
-        'batchsize_discriminator': 64,
-        'batchsize_ppo': 12,
+        'env_steps': 50000,
+        'batchsize_discriminator': 256,
+        'batchsize_ppo': 32,
         'n_workers': 1,
         'entropy_reg': 0,
-        'gamma': 0.999,
+        'gamma': 0.8,
         'epsilon': 0.1,
         'ppo_epochs': 5
     })
@@ -66,8 +66,8 @@ if __name__ == '__main__':
         airl_next_state = torch.tensor(next_states).to(device).float()
         airl_action_prob = torch.exp(torch.tensor(log_probs)).to(device).float()
         airl_rewards = discriminator.predict_reward(airl_state.unsqueeze(0), airl_next_state.unsqueeze(0), config.gamma, airl_action_prob)
-        # airl_rewards = list(airl_rewards.detach().cpu().numpy() * (0 if done else 1))
-        airl_rewards = list(airl_rewards.detach().cpu().numpy())
+        airl_rewards = list(airl_rewards.detach().cpu().numpy() * (0 if done else 1))
+        # airl_rewards = list(airl_rewards.detach().cpu().numpy())
 
         # Save Trajectory
         train_ready = dataset.write_tuple([states], [action], airl_rewards, [done], [log_probs])
@@ -93,8 +93,10 @@ if __name__ == '__main__':
             wandb.log({'Discriminator Loss': d_loss,
                        'Fake Accuracy': fake_acc,
                        'Real Accuracy': real_acc})
-            for ret in dataset.log_returns():
-                wandb.log({'Returns': ret})
+            wandb.log({'Reward': dataset.log_objectives().mean()})
+            wandb.log({'Returns': dataset.log_returns().mean()})
+            wandb.log({'Lengths': dataset.log_lengths().mean()})
+
             dataset.reset_trajectories()
 
         if done:

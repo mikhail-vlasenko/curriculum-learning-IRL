@@ -19,26 +19,34 @@ class DiscriminatorMLP(nn.Module):
         # Layers
         # self.action_embedding = nn.Linear(n_actions, state_shape[0]*state_shape[1])
         if self.simple_architecture:
-            self.reward_l1 = nn.Linear(state_shape, 256)
+            self.reward_l1 = nn.Linear(state_shape, 32)
+            self.reward_out = nn.Linear(32, 1)
         else:
             self.reward_l1 = nn.Linear(self.in_channels*self.state_shape[0]*self.state_shape[1], 256)
+            self.reward_out = nn.Linear(256, 1)
         self.reward_l2 = nn.Linear(256, 512)
         self.reward_l3 = nn.Linear(512, 256)
-        self.reward_out = nn.Linear(256, 1)
 
         if self.simple_architecture:
-            self.value_l1 = nn.Linear(state_shape, 256)
+            self.value_l1 = nn.Linear(state_shape, 32)
+            self.value_out = nn.Linear(32, 1)
         else:
             self.value_l1 = nn.Linear(self.in_channels*self.state_shape[0]*self.state_shape[1], 256)
+            self.value_out = nn.Linear(256, 1)
         self.value_l2 = nn.Linear(256, 512)
         self.value_l3 = nn.Linear(512, 256)
-        self.value_out = nn.Linear(256, 1)
 
         # Activation
         self.relu = nn.LeakyReLU(0.01)
 
     def g(self, state):
         state = state.view(state.shape[0], -1)
+
+        if self.simple_architecture:
+            x = self.relu(self.reward_l1(state))
+            x = x.view(x.shape[0], -1)
+            x = self.reward_out(x)
+            return x
 
         x = self.relu(self.reward_l1(state))
         x = self.relu(self.reward_l2(x))
@@ -50,6 +58,12 @@ class DiscriminatorMLP(nn.Module):
 
     def h(self, state):
         state = state.view(state.shape[0], -1)
+
+        if self.simple_architecture:
+            x = self.relu(self.value_l1(state))
+            x = x.view(x.shape[0], -1)
+            x = self.value_out(x)
+            return x
 
         x = self.relu(self.value_l1(state))
         x = self.relu(self.value_l2(x))
@@ -239,8 +253,8 @@ def training_sampler(expert_trajectories, policy_trajectories, ppo, batch_size, 
     latents = []
     for i in range(batch_size):
         # 1 if (s,a,s') comes from expert, 0 otherwise
-        # expert_boolean = np.random.randint(2)
-        expert_boolean = 1 if i < batch_size/2 else 0
+        expert_boolean = np.random.randint(2)
+        # expert_boolean = 1 if i < batch_size/2 else 0
         if expert_boolean == 1:
             selected_trajectories = expert_trajectories
         else:
