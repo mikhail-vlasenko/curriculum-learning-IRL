@@ -20,7 +20,7 @@ if __name__ == '__main__':
     # Init WandB & Parameters
     wandb.init(project='AIRL', dir='../wandb', config={
         'env_id': 'randomized_v3',
-        'env_steps': 50000,
+        'env_steps': 500000,
         'batchsize_discriminator': 256,
         'batchsize_ppo': 32,
         'n_workers': 1,
@@ -44,14 +44,14 @@ if __name__ == '__main__':
     # Initialize Models
     ppo = PPO(state_shape=obs_shape[0], n_actions=n_actions, simple_architecture=True).to(device)
     discriminator = DiscriminatorMLP(state_shape=obs_shape[0], simple_architecture=True).to(device)
-    optimizer = torch.optim.Adam(ppo.parameters(), lr=5e-4)
-    optimizer_discriminator = torch.optim.Adam(discriminator.parameters(), lr=5e-5)
+    optimizer = torch.optim.Adam(ppo.parameters(), lr=5e-3)
+    optimizer_discriminator = torch.optim.Adam(discriminator.parameters(), lr=5e-4)
     dataset = TrajectoryDataset(batch_size=config.batchsize_ppo, n_workers=config.n_workers)
 
     # Logging
     objective_logs = []
 
-    for t in tqdm(range((int(config.env_steps/config.n_workers)))):
+    for t in tqdm(range((int(config.env_steps / config.n_workers)))):
 
         # Act
         action, log_probs = ppo.act(states_tensor)
@@ -65,7 +65,8 @@ if __name__ == '__main__':
         airl_state = torch.tensor(states).to(device).float()
         airl_next_state = torch.tensor(next_states).to(device).float()
         airl_action_prob = torch.exp(torch.tensor(log_probs)).to(device).float()
-        airl_rewards = discriminator.predict_reward(airl_state.unsqueeze(0), airl_next_state.unsqueeze(0), config.gamma, airl_action_prob)
+        airl_rewards = discriminator.predict_reward(airl_state.unsqueeze(0), airl_next_state.unsqueeze(0), config.gamma,
+                                                    airl_action_prob)
         airl_rewards = list(airl_rewards.detach().cpu().numpy() * (0 if done else 1))
         # airl_rewards = list(airl_rewards.detach().cpu().numpy())
 
@@ -73,11 +74,9 @@ if __name__ == '__main__':
         train_ready = dataset.write_tuple([states], [action], airl_rewards, [done], [log_probs])
 
         if train_ready:
-            # Log Objectives
-            # objective_logs = dataset.log_objectives()
-            # for ret in objective_logs:
-            #     wandb.log({'Reward': ret})
-            objective_logs = []
+            wandb.log({'Reward': dataset.log_objectives().mean()})
+            wandb.log({'Returns': dataset.log_returns().mean()})
+            wandb.log({'Lengths': dataset.log_lengths().mean()})
 
             # Update Models
             update_policy(ppo, dataset, optimizer, config.gamma, config.epsilon, config.ppo_epochs,
@@ -89,13 +88,11 @@ if __name__ == '__main__':
                                                               policy_trajectories=dataset.trajectories.copy(), ppo=ppo,
                                                               batch_size=config.batchsize_discriminator)
 
+
             # Log Loss Statsitics
             wandb.log({'Discriminator Loss': d_loss,
                        'Fake Accuracy': fake_acc,
                        'Real Accuracy': real_acc})
-            wandb.log({'Reward': dataset.log_objectives().mean()})
-            wandb.log({'Returns': dataset.log_returns().mean()})
-            wandb.log({'Lengths': dataset.log_lengths().mean()})
 
             dataset.reset_trajectories()
 
@@ -105,5 +102,5 @@ if __name__ == '__main__':
         states = next_states.copy()
         states_tensor = torch.tensor(states).float().to(device)
 
-    torch.save(discriminator.state_dict(), '../saved_models/discriminator.pt')
+    torch.save(discriminator.state_dict(), '../saved_models/semi_trained_discriminator.pt')
     env.close()

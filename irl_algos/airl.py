@@ -82,6 +82,9 @@ class DiscriminatorMLP(nn.Module):
 
         return advantage
 
+    def sub_probs(self, state, next_state, gamma, log_prob):
+        return self.forward(state, next_state, gamma) - log_prob
+
     def discriminate(self, state, next_state, gamma, action_probability):
         advantage = self.forward(state, next_state, gamma)
         advantage = advantage.squeeze(1)
@@ -245,7 +248,9 @@ class Discriminator(nn.Module):
     #     return self.utopia_point
 
 
-def training_sampler(expert_trajectories, policy_trajectories, ppo, batch_size, latent_posterior=None):
+def training_sampler(expert_trajectories, policy_trajectories, ppo, batch_size,
+                     latent_posterior=None, only_expert=False, only_policy=False):
+    assert not (only_expert and only_policy), "Cannot sample only expert and only policy"
     states = []
     action_probabilities = []
     next_states = []
@@ -253,7 +258,12 @@ def training_sampler(expert_trajectories, policy_trajectories, ppo, batch_size, 
     latents = []
     for i in range(batch_size):
         # 1 if (s,a,s') comes from expert, 0 otherwise
-        expert_boolean = np.random.randint(2)
+        if only_expert:
+            expert_boolean = 1
+        elif only_policy:
+            expert_boolean = 0
+        else:
+            expert_boolean = np.random.randint(2)
         # expert_boolean = 1 if i < batch_size/2 else 0
         if expert_boolean == 1:
             selected_trajectories = expert_trajectories
@@ -283,6 +293,7 @@ def training_sampler(expert_trajectories, policy_trajectories, ppo, batch_size, 
         else:
             action_probability, _ = ppo.forward(torch.tensor(state).float().to(device))
             action_probability = action_probability.squeeze(0)
+            # print(action_probability)
         # Get the action that was actually selected in the trajectory
         selected_action = selected_trajectories[random_tau_idx]['actions'][random_state_idx]
 
@@ -296,8 +307,8 @@ def training_sampler(expert_trajectories, policy_trajectories, ppo, batch_size, 
            torch.tensor(labels).long().to(device), torch.tensor(latents).float().to(device)
 
 
-def update_discriminator(discriminator, optimizer, gamma, expert_trajectories, policy_trajectories, ppo, batch_size,
-                         latent_posterior=None):
+def update_discriminator(discriminator, optimizer, gamma, expert_trajectories, policy_trajectories,
+                         ppo, batch_size, latent_posterior=None):
     criterion = nn.CrossEntropyLoss()
     states, next_states, action_probabilities, labels, latents\
         = training_sampler(expert_trajectories, policy_trajectories, ppo, batch_size, latent_posterior)
@@ -306,6 +317,7 @@ def update_discriminator(discriminator, optimizer, gamma, expert_trajectories, p
     else:
         advantages = discriminator.forward(states, next_states, gamma)
     # Cat advantages and log_probs to (batch_size, 2)
+    # todo: why do we compare log action probas with advantage???
     class_predictions = torch.cat([torch.log(action_probabilities).unsqueeze(1), advantages], dim=1)
     # Compute Loss function
     loss = criterion(class_predictions, labels)
@@ -320,3 +332,35 @@ def update_discriminator(discriminator, optimizer, gamma, expert_trajectories, p
     optimizer.step()
 
     return loss.item(), torch.mean(predicted_fake).item(), torch.mean(predicted_expert).item()
+
+
+def update_discriminator_mine(discriminator, optimizer, gamma, expert_trajectories, policy_trajectories,
+                              ppo, batch_size, latent_posterior=None):
+    ex_states, ex_next_states, ex_action_probabilities, labels, latents\
+        = training_sampler(expert_trajectories, policy_trajectories, ppo, batch_size, latent_posterior, only_expert=True)
+    po_states, po_next_states, po_action_probabilities, labels, latents\
+        = training_sampler(expert_trajectories, policy_trajectories, ppo, batch_size, latent_posterior, only_policy=True)
+    if len(latents) > 0:
+        raise NotImplementedError
+    else:
+        ex_advantages = discriminator.sub_probs(ex_states, ex_next_states, gamma, ex_action_probabilities)
+        po_advantages = discriminator.sub_probs(ex_states, ex_next_states, gamma, po_action_probabilities)
+
+    # Discriminator is to maximize E_{\pi} [log(1 - D)] + E_{exp} [log(D)].
+    loss_exp = -F.logsigmoid(ex_advantages).mean()
+    loss_po = -F.logsigmoid(-po_advantages).mean()
+    loss = loss_exp + loss_po
+
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+    # # Compute Accuracies
+    # label_predictions = torch.argmax(class_predictions, dim=1)
+    # predicted_fake = (label_predictions[labels == 0] == 0).float()
+    # predicted_expert = (label_predictions[labels == 1] == 1).float()
+    predicted_fake = torch.zeros(batch_size)
+    predicted_expert = torch.ones(batch_size)
+
+    return loss.item(), torch.mean(predicted_fake).item(), torch.mean(predicted_expert).item()
+

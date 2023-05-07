@@ -11,7 +11,7 @@ import gymnasium as gym
 
 
 expert_trajectories = pickle.load(open('demonstrations/ppo_demos.pk', 'rb'))
-
+print(f'Total number of trajectories: {len(expert_trajectories)}')
 for _ in range(10):
     i = random.randint(0, len(expert_trajectories)-1)
     print(len(expert_trajectories[i]['actions']), expert_trajectories[i])

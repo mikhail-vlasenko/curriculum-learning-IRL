@@ -62,6 +62,8 @@ class GridWorldEnv(gym.Env):
         # We need the following line to seed self.np_random
         super().reset(seed=seed)
 
+        self._time = 0
+
         # Choose the agent's location uniformly at random
         self._agent_location = self.np_random.integers(0, self.size, size=2, dtype=int)
 
@@ -97,6 +99,10 @@ class GridWorldEnv(gym.Env):
         if self.render_mode == "human":
             self._render_frame()
 
+        if not terminated and self._time >= 2 * (self.size ** 2):
+            return observation, -1, True, True, info
+
+        self._time += 1
         return observation, reward, terminated, False, info
 
     def render(self):
