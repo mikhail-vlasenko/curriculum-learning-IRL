@@ -302,9 +302,10 @@ def training_sampler(expert_trajectories, policy_trajectories, ppo, batch_size,
         action_probabilities.append(action_probability[selected_action].item())
         labels.append(expert_boolean)
 
-    return torch.tensor(states).float().to(device), torch.tensor(next_states).float().to(device), \
-           torch.tensor(action_probabilities).float().to(device),\
-           torch.tensor(labels).long().to(device), torch.tensor(latents).float().to(device)
+    return torch.tensor(np.stack(states, axis=0)).float().to(device), \
+        torch.tensor(np.stack(next_states, axis=0)).float().to(device), \
+        torch.tensor(action_probabilities).float().to(device),\
+        torch.tensor(labels).long().to(device), torch.tensor(latents).float().to(device)
 
 
 def update_discriminator(discriminator, optimizer, gamma, expert_trajectories, policy_trajectories,

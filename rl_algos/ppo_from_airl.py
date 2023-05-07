@@ -57,7 +57,7 @@ class PPO(nn.Module):
         action_probabilities, _ = self.forward(state)
         m = Categorical(action_probabilities)
         action = m.sample()
-        return action.detach().cpu().numpy().item(), m.log_prob(action).detach().cpu().numpy().item()
+        return action.detach().cpu().numpy(), m.log_prob(action).detach().cpu().numpy()
 
     def evaluate_trajectory(self, tau):
         trajectory_states = torch.tensor(np.array(tau['states'])).float().to(device)  # says its super slow

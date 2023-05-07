@@ -1,6 +1,8 @@
 import wandb
 
 from tqdm import tqdm
+
+from gym_examples.wrappers.vec_env import VecEnv
 from irl_algos.airl import *
 from rl_algos.ppo_from_airl import *
 import torch
@@ -10,7 +12,6 @@ import gym_examples
 from gym_examples.wrappers import RelativePosition
 import gymnasium as gym
 
-# Device Check
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 if not torch.cuda.is_available():
     print('WARNING: CUDA not available. Using CPU.')
@@ -22,8 +23,13 @@ def main():
     expert_trajectories = pickle.load(open(config.expert_data_path, 'rb'))
 
     # Create Environment
-    env = gym.make(config.env_id, render_mode=None)
-    env = RelativePosition(env)
+    sub_envs = []
+    for i in range(config.n_workers):
+        env = gym.make(config.env_id)
+        sub_envs.append(RelativePosition(env))
+
+    env = VecEnv(sub_envs)
+
     states, info = env.reset()
     states_tensor = torch.tensor(states).float().to(device)
 
@@ -39,22 +45,20 @@ def main():
     dataset = TrajectoryDataset(batch_size=config.ppo_update_episodes, n_workers=config.n_workers)
 
     for t in tqdm(range((int(config.env_steps / config.n_workers)))):
-        # Act
         action, log_probs = ppo.act(states_tensor)
-        next_states, rewards, terminated, truncated, info = env.step(action)
-        done = terminated or truncated
+        next_states, rewards, done, _, info = env.step(action)
 
         # Calculate (vectorized) AIRL reward
         airl_state = torch.tensor(states).to(device).float()
         airl_next_state = torch.tensor(next_states).to(device).float()
         airl_action_prob = torch.exp(torch.tensor(log_probs)).to(device).float()
-        airl_rewards = discriminator.predict_reward(airl_state.unsqueeze(0), airl_next_state.unsqueeze(0), config.gamma,
+        airl_rewards = discriminator.predict_reward(airl_state, airl_next_state, 0.8,
                                                     airl_action_prob)
-        airl_rewards = list(airl_rewards.detach().cpu().numpy() * (0 if done else 1))
-        # airl_rewards = list(airl_rewards.detach().cpu().numpy())
+        airl_rewards = airl_rewards.detach().cpu().numpy()
+        airl_rewards[done] = 0
 
         # Save Trajectory
-        train_ready = dataset.write_tuple([states], [action], airl_rewards, [done], [log_probs], logs=[rewards])
+        train_ready = dataset.write_tuple(states, action, airl_rewards, done, log_probs, logs=rewards)
 
         if train_ready:
             wandb.log({'Reward': dataset.log_objectives().mean()})
@@ -81,8 +85,6 @@ def main():
 
             dataset.reset_trajectories()
 
-        if done:
-            next_states, info = env.reset()
         # Prepare state input for next time step
         states = next_states.copy()
         states_tensor = torch.tensor(states).float().to(device)
@@ -114,7 +116,7 @@ if __name__ == '__main__':
         'lr_discriminator': 5e-4,
         'ppo_update_episodes': 64,
         'lr_ppo': 1e-3,
-        'n_workers': 1,
+        'n_workers': 64,
         'entropy_reg': 0,
         'gamma': 0.8,
         'epsilon': 0.1,
