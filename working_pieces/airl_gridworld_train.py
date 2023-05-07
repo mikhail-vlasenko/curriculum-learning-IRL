@@ -12,27 +12,17 @@ import gymnasium as gym
 
 # Device Check
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+if not torch.cuda.is_available():
+    print('WARNING: CUDA not available. Using CPU.')
 
-if __name__ == '__main__':
-    # Load demonstrations
-    expert_trajectories = pickle.load(open('../demonstrations/ppo_demos.pk', 'rb'))
 
-    # Init WandB & Parameters
-    wandb.init(project='AIRL', dir='../wandb', config={
-        'env_id': 'randomized_v3',
-        'env_steps': 500000,
-        'batchsize_discriminator': 256,
-        'batchsize_ppo': 32,
-        'n_workers': 1,
-        'entropy_reg': 0,
-        'gamma': 0.8,
-        'epsilon': 0.1,
-        'ppo_epochs': 5
-    })
+def main():
     config = wandb.config
 
+    expert_trajectories = pickle.load(open(config.expert_data_path, 'rb'))
+
     # Create Environment
-    env = gym.make('gym_examples/GridWorld-v0', render_mode=None)
+    env = gym.make(config.env_id, render_mode=None)
     env = RelativePosition(env)
     states, info = env.reset()
     states_tensor = torch.tensor(states).float().to(device)
@@ -44,22 +34,15 @@ if __name__ == '__main__':
     # Initialize Models
     ppo = PPO(state_shape=obs_shape[0], n_actions=n_actions, simple_architecture=True).to(device)
     discriminator = DiscriminatorMLP(state_shape=obs_shape[0], simple_architecture=True).to(device)
-    optimizer = torch.optim.Adam(ppo.parameters(), lr=5e-3)
-    optimizer_discriminator = torch.optim.Adam(discriminator.parameters(), lr=5e-4)
-    dataset = TrajectoryDataset(batch_size=config.batchsize_ppo, n_workers=config.n_workers)
-
-    # Logging
-    objective_logs = []
+    optimizer = torch.optim.Adam(ppo.parameters(), lr=config.lr_ppo)
+    optimizer_discriminator = torch.optim.Adam(discriminator.parameters(), lr=config.lr_discriminator)
+    dataset = TrajectoryDataset(batch_size=config.ppo_update_episodes, n_workers=config.n_workers)
 
     for t in tqdm(range((int(config.env_steps / config.n_workers)))):
-
         # Act
         action, log_probs = ppo.act(states_tensor)
         next_states, rewards, terminated, truncated, info = env.step(action)
         done = terminated or truncated
-
-        # Log Objectives
-        objective_logs.append(rewards)
 
         # Calculate (vectorized) AIRL reward
         airl_state = torch.tensor(states).to(device).float()
@@ -71,7 +54,7 @@ if __name__ == '__main__':
         # airl_rewards = list(airl_rewards.detach().cpu().numpy())
 
         # Save Trajectory
-        train_ready = dataset.write_tuple([states], [action], airl_rewards, [done], [log_probs])
+        train_ready = dataset.write_tuple([states], [action], airl_rewards, [done], [log_probs], logs=[rewards])
 
         if train_ready:
             wandb.log({'Reward': dataset.log_objectives().mean()})
@@ -85,14 +68,16 @@ if __name__ == '__main__':
                                                               optimizer=optimizer_discriminator,
                                                               gamma=config.gamma,
                                                               expert_trajectories=expert_trajectories,
-                                                              policy_trajectories=dataset.trajectories.copy(), ppo=ppo,
+                                                              policy_trajectories=dataset.trajectories.copy(),
+                                                              ppo=ppo,
                                                               batch_size=config.batchsize_discriminator)
 
-
-            # Log Loss Statsitics
             wandb.log({'Discriminator Loss': d_loss,
                        'Fake Accuracy': fake_acc,
                        'Real Accuracy': real_acc})
+
+            torch.save(discriminator.state_dict(), '../saved_models/checkpoints/discriminator_latest.pt')
+            torch.save(ppo.state_dict(), '../saved_models/checkpoints/ppo_latest.pt')
 
             dataset.reset_trajectories()
 
@@ -102,5 +87,38 @@ if __name__ == '__main__':
         states = next_states.copy()
         states_tensor = torch.tensor(states).float().to(device)
 
-    torch.save(discriminator.state_dict(), '../saved_models/semi_trained_discriminator.pt')
+    torch.save(discriminator.state_dict(), '../saved_models/discriminator.pt')
+    torch.save(ppo.state_dict(), '../saved_models/ppo.pt')
+
+    print('Saving models and data to wandb...')
+    # save model artifacts to wandb
+    model_art = wandb.Artifact('airl_models', type='model')
+    model_art.add_file('../saved_models/discriminator.pt')
+    model_art.add_file('../saved_models/ppo.pt')
+    wandb.log_artifact(model_art)
+
+    data_art = wandb.Artifact('airl_data', type='dataset')
+    data_art.add_file(wandb.config.expert_data_path)
+    wandb.log_artifact(data_art)
+
+    wandb.finish()
+
     env.close()
+
+
+if __name__ == '__main__':
+    wandb.init(project='AIRL', dir='../wandb', config={
+        'env_id': 'gym_examples/GridWorld-v0',
+        'env_steps': 1000000,
+        'batchsize_discriminator': 1024,
+        'lr_discriminator': 5e-4,
+        'ppo_update_episodes': 64,
+        'lr_ppo': 1e-3,
+        'n_workers': 1,
+        'entropy_reg': 0,
+        'gamma': 0.8,
+        'epsilon': 0.1,
+        'ppo_epochs': 5,
+        'expert_data_path': '../demonstrations/ppo_demos.pk',
+    })
+    main()
