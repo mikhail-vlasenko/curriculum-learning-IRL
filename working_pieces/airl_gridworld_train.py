@@ -25,10 +25,10 @@ def main():
     # Create Environment
     sub_envs = []
     for i in range(config.n_workers):
-        env = gym.make(config.env_id)
-        sub_envs.append(RelativePosition(env))
+        sub_env = gym.make(config.env_id)
+        sub_envs.append(RelativePosition(sub_env))
 
-    env = VecEnv(sub_envs)
+    env: VecEnv = VecEnv(sub_envs)
 
     states, info = env.reset()
     states_tensor = torch.tensor(states).float().to(device)

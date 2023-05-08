@@ -1,3 +1,5 @@
+from typing import List, Dict
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -74,9 +76,9 @@ class TrajectoryDataset:
     def __init__(self, batch_size, n_workers):
         self.batch_size = batch_size
         self.n_workers = n_workers
-        self.trajectories = []
+        self.trajectories: List[Dict] = []
         self.buffer = [{'states': [], 'actions': [], 'rewards': [], 'log_probs': [], 'latents': None, 'logs': []}
-                       for i in range(n_workers)]
+                       for _ in range(n_workers)]
 
     def reset_buffer(self, i):
         self.buffer[i] = {'states': [], 'actions': [], 'rewards': [], 'log_probs': [], 'latents': None, 'logs': []}
@@ -84,7 +86,7 @@ class TrajectoryDataset:
     def reset_trajectories(self):
         self.trajectories = []
 
-    def write_tuple(self, states, actions, rewards, done, log_probs, logs=None):
+    def write_tuple(self, states, actions, rewards, done, log_probs, logs=None) -> bool:
         # Takes states of shape (n_workers, state_shape[0], state_shape[1])
         for i in range(self.n_workers):
             self.buffer[i]['states'].append(states[i])
@@ -131,7 +133,7 @@ def g_clip(epsilon, A):
     return torch.tensor([1 + epsilon if i else 1 - epsilon for i in A >= 0]).to(device) * A
 
 
-def update_policy(ppo, dataset, optimizer, gamma, epsilon, n_epochs, entropy_reg):
+def update_policy(ppo: PPO, dataset: TrajectoryDataset, optimizer, gamma, epsilon, n_epochs, entropy_reg) -> None:
     for epoch in range(n_epochs):
         batch_loss = 0
         value_loss = 0

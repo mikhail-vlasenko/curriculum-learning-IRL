@@ -1,3 +1,5 @@
+from typing import List, Dict
+
 import numpy as np
 
 
@@ -8,7 +10,7 @@ class VecEnv:
         self.action_space = self.env_list[0].action_space
         self.observation_space = self.env_list[0].observation_space
 
-    def reset(self):
+    def reset(self) -> (np.ndarray[np.ndarray], List[Dict]):
         obs_list = []
         info_list = []
         for i in range(self.n_envs):
@@ -18,7 +20,8 @@ class VecEnv:
 
         return np.stack(obs_list, axis=0), info_list
 
-    def step(self, actions):
+    def step(self, actions) -> \
+            (np.ndarray[np.ndarray], np.ndarray[float], np.ndarray[bool], np.ndarray[bool], List[Dict]):
         """
         Automatically resets the environment if done
         :param actions:
@@ -40,7 +43,8 @@ class VecEnv:
             done_list.append(done_i)
             info_list.append(info_i)
 
-        return np.stack(obs_list, axis=0), np.array(rew_list), np.array(done_list), np.full(self.n_envs, False), info_list
+        return np.stack(obs_list, axis=0), np.array(rew_list), \
+            np.array(done_list), np.full(self.n_envs, False), info_list
 
     def close(self):
         for env in self.env_list:
