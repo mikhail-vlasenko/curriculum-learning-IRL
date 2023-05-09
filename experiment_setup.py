@@ -1,11 +1,7 @@
 import wandb
 
 from airl_gridworld_train import main
-from config import CONFIG
-
-
-EXPERT_DATA_PREFIX = 'demonstrations/ppo_demos_size'
-EXPERT_DATA_SUFFIX = '.pk'
+from config import CONFIG, set_experiment_config
 
 
 def increasing_grid_size_curriculum(start_from=0):
@@ -19,8 +15,7 @@ def increasing_grid_size_curriculum(start_from=0):
     wandb.config['total_steps'] = CONFIG.airl.env_steps * (len(grid_sizes) - start_from)
 
     for i in range(start_from, len(grid_sizes)):
-        CONFIG.env.grid_size = grid_sizes[i]
-        CONFIG.airl.expert_data_path = EXPERT_DATA_PREFIX + str(grid_sizes[i]) + EXPERT_DATA_SUFFIX
+        set_experiment_config(grid_size=grid_sizes[i])
         if i > 0:
             CONFIG.airl.ppo_load_from = CONFIG.airl.ppo_save_path
             CONFIG.airl.disc_load_from = CONFIG.airl.disc_save_path

@@ -48,7 +48,7 @@ class AIRLConfig:
     Config for training with AIRL
     """
     expert_data_path: str = 'demonstrations/ppo_demos_size5.pk'
-    env_steps: int = 300000
+    env_steps: int = 600000
 
     disc_load_from: str = None
     ppo_load_from: str = None
@@ -81,6 +81,18 @@ CONFIG = Config()
 CONFIG.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 if CONFIG.device == 'cpu':
     print('WARNING: CUDA not available. Using CPU.')
+
+EXPERT_DATA_PREFIX = 'demonstrations/ppo_demos_size'
+EXPERT_DATA_SUFFIX = '.pk'
+
+
+def set_experiment_config(grid_size: int = None, wrappers: List[str] = None):
+    if grid_size is not None:
+        CONFIG.env.grid_size = grid_size
+        CONFIG.airl.expert_data_path = EXPERT_DATA_PREFIX + str(grid_size) + EXPERT_DATA_SUFFIX
+    if wrappers is not None:
+        CONFIG.env.wrappers = wrappers
+
 
 if __name__ == '__main__':
     print(CONFIG.as_dict())

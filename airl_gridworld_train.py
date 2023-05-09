@@ -2,7 +2,7 @@ import wandb
 
 from tqdm import tqdm
 
-from config import CONFIG
+from config import CONFIG, set_experiment_config
 from envs.env_factory import make_env
 from irl_algos.airl import *
 from rl_algos.ppo_from_airl import *
@@ -105,5 +105,6 @@ def main():
 
 
 if __name__ == '__main__':
-    wandb.init(project='AIRL', dir='wandb', config=CONFIG.as_dict())
+    set_experiment_config(grid_size=15)
+    wandb.init(project='AIRL', dir='wandb', config=CONFIG.as_dict(), tags=['single_dataset'])
     main()
