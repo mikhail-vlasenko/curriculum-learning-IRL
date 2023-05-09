@@ -80,8 +80,8 @@ def main():
                        'Fake Accuracy': fake_acc,
                        'Real Accuracy': real_acc})
 
-            torch.save(discriminator.state_dict(), '../saved_models/checkpoints/discriminator_latest.pt')
-            torch.save(ppo.state_dict(), '../saved_models/checkpoints/ppo_latest.pt')
+            torch.save(discriminator.state_dict(), 'saved_models/checkpoints/discriminator_latest.pt')
+            torch.save(ppo.state_dict(), 'saved_models/checkpoints/ppo_latest.pt')
 
             dataset.reset_trajectories()
 
@@ -89,14 +89,14 @@ def main():
         states = next_states.copy()
         states_tensor = torch.tensor(states).float().to(device)
 
-    torch.save(discriminator.state_dict(), '../saved_models/discriminator.pt')
-    torch.save(ppo.state_dict(), '../saved_models/ppo.pt')
+    torch.save(discriminator.state_dict(), 'saved_models/discriminator.pt')
+    torch.save(ppo.state_dict(), 'saved_models/ppo.pt')
 
     print('Saving models and data to wandb...')
     # save model artifacts to wandb
     model_art = wandb.Artifact('airl_models', type='model')
-    model_art.add_file('../saved_models/discriminator.pt')
-    model_art.add_file('../saved_models/ppo.pt')
+    model_art.add_file('saved_models/discriminator.pt')
+    model_art.add_file('saved_models/ppo.pt')
     wandb.log_artifact(model_art)
 
     data_art = wandb.Artifact('airl_data', type='dataset')
@@ -109,7 +109,7 @@ def main():
 
 
 if __name__ == '__main__':
-    wandb.init(project='AIRL', dir='../wandb', config={
+    wandb.init(project='AIRL', dir='wandb', config={
         'env_id': 'gym_examples/GridWorld-v0',
         'env_steps': 1000000,
         'batchsize_discriminator': 1024,
@@ -121,6 +121,6 @@ if __name__ == '__main__':
         'gamma': 0.8,
         'epsilon': 0.1,
         'ppo_epochs': 5,
-        'expert_data_path': '../demonstrations/ppo_demos.pk',
+        'expert_data_path': 'demonstrations/ppo_demos.pk',
     })
     main()
