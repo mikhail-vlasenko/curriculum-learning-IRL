@@ -3,11 +3,10 @@ import wandb
 from tqdm import tqdm
 
 from config import CONFIG
-from env_factory import make_env
+from envs.env_factory import make_env
 from irl_algos.airl import *
 from rl_algos.ppo_from_airl import *
 import torch
-import numpy as np
 import pickle
 
 

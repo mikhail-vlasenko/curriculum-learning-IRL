@@ -7,7 +7,7 @@ from config import CONFIG
 from rl_algos.ppo_from_airl import *
 import torch
 import pickle
-from env_factory import make_env
+from envs.env_factory import make_env
 
 
 # Use GPU if available

@@ -11,9 +11,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from irl_maxent.trajectory import Trajectory
 
-from demonstrations import generate_demonstrations
+from utils.demonstrations import generate_demonstrations
 from envs import small_gridworld as gridworld
-from rl_algos.q_learning import q_learning, make_epsilon_greedy_policy, QLearningAgent
+from rl_algos.q_learning import q_learning, QLearningAgent
 
 
 def setup_mdp():

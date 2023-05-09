@@ -10,7 +10,7 @@ from gym_examples.wrappers import RelativePosition
 import gymnasium as gym
 
 
-expert_trajectories = pickle.load(open('demonstrations/ppo_demos_size15.pk', 'rb'))
+expert_trajectories = pickle.load(open('../demonstrations/ppo_demos_size15.pk', 'rb'))
 print(f'Total number of trajectories: {len(expert_trajectories)}')
 for _ in range(10):
     i = random.randint(0, len(expert_trajectories)-1)
