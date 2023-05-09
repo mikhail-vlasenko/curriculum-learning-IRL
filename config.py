@@ -1,6 +1,8 @@
 from typing import List
 from dataclasses import dataclass, field, asdict
 
+import torch
+
 
 @dataclass
 class EnvConfig:
@@ -42,8 +44,16 @@ class DemosConfig:
 
 @dataclass
 class AIRLConfig:
+    """
+    Config for training with AIRL
+    """
     expert_data_path: str = 'demonstrations/ppo_demos_size5.pk'
-    env_steps: int = 500000
+    env_steps: int = 300000
+
+    disc_load_from: str = None
+    ppo_load_from: str = None
+    disc_save_path: str = 'saved_models/discriminator.pt'
+    ppo_save_path: str = 'saved_models/airl_ppo.pt'
 
 
 @dataclass
@@ -67,6 +77,10 @@ class Config:
 
 
 CONFIG = Config()
+
+CONFIG.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+if CONFIG.device == 'cpu':
+    print('WARNING: CUDA not available. Using CPU.')
 
 if __name__ == '__main__':
     print(CONFIG.as_dict())

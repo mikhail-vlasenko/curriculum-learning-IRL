@@ -32,6 +32,12 @@ def main():
     optimizer_discriminator = torch.optim.Adam(discriminator.parameters(), lr=CONFIG.discriminator.lr)
     dataset = TrajectoryDataset(batch_size=CONFIG.ppo.batch_size, n_workers=CONFIG.ppo.n_workers)
 
+    if CONFIG.airl.disc_load_from is not None:
+        discriminator.load_state_dict(torch.load(CONFIG.airl.disc_load_from))
+
+    if CONFIG.airl.ppo_load_from is not None:
+        ppo.load_state_dict(torch.load(CONFIG.airl.ppo_load_from))
+
     for _ in tqdm(range((int(CONFIG.airl.env_steps / CONFIG.ppo.n_workers)))):
         action, log_probs = ppo.act(state_tensor)
         next_state, reward, done, _, info = env.step(action)
@@ -40,7 +46,7 @@ def main():
         # Calculate (vectorized) AIRL reward
         airl_action_prob = torch.exp(torch.tensor(log_probs)).to(device).float()
         airl_rewards = discriminator.predict_reward(
-            state_tensor, next_state_tensor, 0.8, airl_action_prob
+            state_tensor, next_state_tensor, CONFIG.ppo.gamma, airl_action_prob
         )
         airl_rewards = airl_rewards.detach().cpu().numpy()
         airl_rewards[done] = 0
@@ -54,15 +60,20 @@ def main():
             wandb.log({'Lengths': dataset.log_lengths().mean()})
 
             # Update Models
-            update_policy(ppo, dataset, optimizer, CONFIG.ppo.gamma, CONFIG.ppo.epsilon, CONFIG.ppo.update_epochs,
-                          entropy_reg=CONFIG.ppo.entropy_reg)
-            d_loss, fake_acc, real_acc = update_discriminator(discriminator=discriminator,
-                                                              optimizer=optimizer_discriminator,
-                                                              gamma=CONFIG.ppo.gamma,
-                                                              expert_trajectories=expert_trajectories,
-                                                              policy_trajectories=dataset.trajectories,
-                                                              ppo=ppo,
-                                                              batch_size=CONFIG.discriminator.batch_size)
+            update_policy(
+                ppo, dataset, optimizer,
+                CONFIG.ppo.gamma, CONFIG.ppo.epsilon, CONFIG.ppo.update_epochs,
+                entropy_reg=CONFIG.ppo.entropy_reg
+            )
+            d_loss, fake_acc, real_acc = update_discriminator(
+                discriminator=discriminator,
+                optimizer=optimizer_discriminator,
+                gamma=CONFIG.ppo.gamma,
+                expert_trajectories=expert_trajectories,
+                policy_trajectories=dataset.trajectories,
+                ppo=ppo,
+                batch_size=CONFIG.discriminator.batch_size
+            )
 
             wandb.log({'Discriminator Loss': d_loss,
                        'Fake Accuracy': fake_acc,
@@ -77,29 +88,22 @@ def main():
         state = next_state
         state_tensor = next_state_tensor
 
-    torch.save(discriminator.state_dict(), 'saved_models/discriminator.pt')
-    torch.save(ppo.state_dict(), 'saved_models/ppo.pt')
+    torch.save(discriminator.state_dict(), CONFIG.airl.disc_save_path)
+    torch.save(ppo.state_dict(), CONFIG.airl.ppo_save_path)
 
-    print('Saving models and data to wandb...')
     # save model artifacts to wandb
     model_art = wandb.Artifact('airl_models', type='model')
-    model_art.add_file('saved_models/discriminator.pt')
-    model_art.add_file('saved_models/ppo.pt')
+    model_art.add_file(CONFIG.airl.disc_save_path)
+    model_art.add_file(CONFIG.airl.ppo_save_path)
     wandb.log_artifact(model_art)
 
     data_art = wandb.Artifact('airl_data', type='dataset')
     data_art.add_file(CONFIG.airl.expert_data_path)
     wandb.log_artifact(data_art)
 
-    wandb.finish()
-
     env.close()
 
 
 if __name__ == '__main__':
-    CONFIG.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    if not torch.cuda.is_available():
-        print('WARNING: CUDA not available. Using CPU.')
-
     wandb.init(project='AIRL', dir='wandb', config=CONFIG.as_dict())
     main()

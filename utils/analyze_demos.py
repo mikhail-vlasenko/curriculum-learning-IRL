@@ -27,7 +27,8 @@ for i in range(n):
         for k in range(n):
             for l in range(n):
                 p2 = (k, l)
-                s += abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
-                cnt += 1
+                if p1 != p2:
+                    s += abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
+                    cnt += 1
 
 print(f'For {n=}, the ideal average length is {s / cnt}')
