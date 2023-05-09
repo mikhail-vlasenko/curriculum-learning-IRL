@@ -38,7 +38,7 @@ def main():
     if CONFIG.airl.ppo_load_from is not None:
         ppo.load_state_dict(torch.load(CONFIG.airl.ppo_load_from))
 
-    for _ in tqdm(range((int(CONFIG.airl.env_steps / CONFIG.ppo.n_workers)))):
+    for t in tqdm(range((int(CONFIG.airl.env_steps / CONFIG.ppo.n_workers)))):
         action, log_probs = ppo.act(state_tensor)
         next_state, reward, done, _, info = env.step(action)
         next_state_tensor = torch.tensor(next_state).to(device).float()
@@ -55,9 +55,9 @@ def main():
         train_ready = dataset.write_tuple(state, action, airl_rewards, done, log_probs, logs=reward)
 
         if train_ready:
-            wandb.log({'Reward': dataset.log_objectives().mean()})
-            wandb.log({'Returns': dataset.log_returns().mean()})
-            wandb.log({'Lengths': dataset.log_lengths().mean()})
+            wandb.log({'Reward': dataset.log_objectives().mean(),
+                       'Returns': dataset.log_returns().mean(),
+                       'Lengths': dataset.log_lengths().mean()}, step=t * CONFIG.ppo.n_workers)
 
             # Update Models
             update_policy(
@@ -77,7 +77,7 @@ def main():
 
             wandb.log({'Discriminator Loss': d_loss,
                        'Fake Accuracy': fake_acc,
-                       'Real Accuracy': real_acc})
+                       'Real Accuracy': real_acc}, step=t * CONFIG.ppo.n_workers)
 
             torch.save(discriminator.state_dict(), 'saved_models/checkpoints/discriminator_latest.pt')
             torch.save(ppo.state_dict(), 'saved_models/checkpoints/ppo_latest.pt')

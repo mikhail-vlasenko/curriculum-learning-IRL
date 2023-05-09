@@ -48,9 +48,9 @@ if CONFIG.ppo_train.do_train:
         if train_ready:
             update_policy(ppo, dataset, optimizer, CONFIG.ppo.gamma, CONFIG.ppo.epsilon, CONFIG.ppo.update_epochs,
                           entropy_reg=CONFIG.ppo.entropy_reg)
-            wandb.log({'Reward': dataset.log_objectives().mean()})
-            wandb.log({'Returns': dataset.log_returns().mean()})
-            wandb.log({'Lengths': dataset.log_lengths().mean()})
+            wandb.log({'Reward': dataset.log_objectives().mean(),
+                       'Returns': dataset.log_returns().mean(),
+                       'Lengths': dataset.log_lengths().mean()}, step=t * CONFIG.ppo.n_workers)
 
             dataset.reset_trajectories()
 
@@ -58,7 +58,11 @@ if CONFIG.ppo_train.do_train:
         states = next_states.copy()
         states_tensor = torch.tensor(states).float().to(device)
 
-    torch.save(ppo.state_dict(), 'saved_models/ppo_expert.pt')
+    torch.save(ppo.state_dict(), CONFIG.ppo_train.ppo_save_path)
+    model_art = wandb.Artifact('expert_model', type='model')
+    model_art.add_file(CONFIG.ppo_train.ppo_save_path)
+    wandb.log_artifact(model_art)
+
     env.close()
 else:
     ppo.load_state_dict(torch.load(CONFIG.ppo_train.load_from))
@@ -73,8 +77,7 @@ dataset = []
 episode = {'states': [], 'actions': []}
 episode_cnt = 0
 
-
-for t in tqdm(range(CONFIG.demos.n_steps)):
+for _ in tqdm(range(CONFIG.demos.n_steps)):
     action, log_probs = ppo.act(states_tensor)
     action = action.item()
     next_states, reward, terminated, truncated, info = env.step(action)

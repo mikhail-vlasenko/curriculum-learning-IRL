@@ -21,6 +21,7 @@ class PPOTrainConfig:
     do_train: bool = True
     env_steps: int = 30000
     load_from: str = 'saved_models/size5_ppo_expert.pt'
+    ppo_save_path: str = 'saved_models/ppo_expert.pt'
 
 
 @dataclass
