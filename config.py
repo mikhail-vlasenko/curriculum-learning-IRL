@@ -43,7 +43,7 @@ class DemosConfig:
 @dataclass
 class AIRLConfig:
     expert_data_path: str = 'demonstrations/ppo_demos_size5.pk'
-    env_steps: int = 1000000
+    env_steps: int = 500000
 
 
 @dataclass

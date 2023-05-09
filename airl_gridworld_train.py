@@ -61,7 +61,7 @@ def main():
                                                               optimizer=optimizer_discriminator,
                                                               gamma=CONFIG.ppo.gamma,
                                                               expert_trajectories=expert_trajectories,
-                                                              policy_trajectories=dataset.trajectories.copy(),  # todo: maybe this copy can be removed
+                                                              policy_trajectories=dataset.trajectories,
                                                               ppo=ppo,
                                                               batch_size=CONFIG.discriminator.batch_size)
 
@@ -75,8 +75,8 @@ def main():
             dataset.reset_trajectories()
 
         # Prepare state input for next time step
-        state = next_state.copy()
-        state_tensor = next_state_tensor.clone()  # todo: maybe this clone can be removed
+        state = next_state
+        state_tensor = next_state_tensor
 
     torch.save(discriminator.state_dict(), 'saved_models/discriminator.pt')
     torch.save(ppo.state_dict(), 'saved_models/ppo.pt')
