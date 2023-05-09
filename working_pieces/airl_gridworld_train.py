@@ -72,7 +72,7 @@ def main():
                                                               optimizer=optimizer_discriminator,
                                                               gamma=config.gamma,
                                                               expert_trajectories=expert_trajectories,
-                                                              policy_trajectories=dataset.trajectories.copy(),
+                                                              policy_trajectories=dataset.trajectories.copy(),  # todo: maybe this copy can be removed
                                                               ppo=ppo,
                                                               batch_size=config.batchsize_discriminator)
 

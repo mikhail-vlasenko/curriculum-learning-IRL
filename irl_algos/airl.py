@@ -253,8 +253,10 @@ class Discriminator(nn.Module):
     #     return self.utopia_point
 
 
-def training_sampler(expert_trajectories: List[Dict], policy_trajectories: List[Dict], ppo: PPO, batch_size,
-                     latent_posterior=None, only_expert=False, only_policy=False):
+def training_sampler(
+        expert_trajectories: List[Dict], policy_trajectories: List[Dict], ppo: PPO, batch_size,
+        latent_posterior=None, only_expert=False, only_policy=False
+):
     assert not (only_expert and only_policy), "Cannot sample only expert and only policy"
     states = []
     action_probabilities = []
@@ -315,11 +317,15 @@ def training_sampler(expert_trajectories: List[Dict], policy_trajectories: List[
         torch.tensor(labels).long().to(device), torch.tensor(latents).float().to(device)
 
 
-def update_discriminator(discriminator: DiscriminatorMLP, optimizer: torch.optim.Optimizer, gamma, expert_trajectories, policy_trajectories,
-                         ppo, batch_size, latent_posterior=None):
+def update_discriminator(
+        discriminator: DiscriminatorMLP, optimizer: torch.optim.Optimizer, gamma,
+        expert_trajectories, policy_trajectories,
+        ppo, batch_size, latent_posterior=None
+):
     criterion = nn.CrossEntropyLoss()
-    states, next_states, action_probabilities, labels, latents\
-        = training_sampler(expert_trajectories, policy_trajectories, ppo, batch_size, latent_posterior)
+    states, next_states, action_probabilities, labels, latents = training_sampler(
+        expert_trajectories, policy_trajectories, ppo, batch_size, latent_posterior
+    )
     if len(latents) > 0:
         raise NotImplementedError
     else:

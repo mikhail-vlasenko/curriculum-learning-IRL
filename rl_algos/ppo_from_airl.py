@@ -35,7 +35,7 @@ class PPO(nn.Module):
         self.relu = nn.ReLU()
         self.softmax = nn.Softmax(dim=-1)
 
-    def forward(self, x):
+    def forward(self, x) -> (torch.Tensor, torch.Tensor):
         if self.simple_architecture:
             x = self.relu(self.l1(x))
             x_actor = self.softmax(self.actor_out(x))
@@ -55,7 +55,7 @@ class PPO(nn.Module):
 
         return x_actor, x_critic
 
-    def act(self, state):
+    def act(self, state) -> (np.ndarray, np.ndarray):
         action_probabilities, _ = self.forward(state)
         m = Categorical(action_probabilities)
         action = m.sample()

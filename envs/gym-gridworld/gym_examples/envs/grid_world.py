@@ -6,16 +6,16 @@ import numpy as np
 class GridWorldEnv(Env):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
 
-    def __init__(self, render_mode=None, size=5):
-        self.size = size  # The size of the square grid
+    def __init__(self, render_mode=None, grid_size=5):
+        self.size = grid_size  # The size of the square grid
         self.window_size = 512  # The size of the PyGame window
 
         # Observations are dictionaries with the agent's and the target's location.
         # Each location is encoded as an element of {0, ..., `size`}^2, i.e. MultiDiscrete([size, size]).
         self.observation_space = spaces.Dict(
             {
-                "agent": spaces.Box(0, size - 1, shape=(2,), dtype=np.int32),
-                "target": spaces.Box(0, size - 1, shape=(2,), dtype=np.int32),
+                "agent": spaces.Box(0, grid_size - 1, shape=(2,), dtype=np.int32),
+                "target": spaces.Box(0, grid_size - 1, shape=(2,), dtype=np.int32),
             }
         )
 
