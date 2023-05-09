@@ -1,59 +1,75 @@
-from typing import Type
+from typing import List
+from dataclasses import dataclass, field, asdict
 
 
+@dataclass
 class EnvConfig:
-    id = 'gym_examples/GridWorld-v0'
-    grid_size = 15
-    wrappers = ['RelativePosition']
-    vectorized = True
+    id: str = 'gym_examples/GridWorld-v0'
+    grid_size: int = 5
+    wrappers: List[str] = field(default_factory=lambda: ['RelativePosition'])
+    vectorized: bool = True
+    tensor_state: bool = False
 
 
+@dataclass
 class PPOTrainConfig:
-    do_train = True
-    env_steps = 50000
-    load_from = 'saved_models/size5_ppo_expert.pt'
+    """
+    Config for training the expert PPO
+    """
+    do_train: bool = True
+    env_steps: int = 30000
+    load_from: str = 'saved_models/size5_ppo_expert.pt'
 
 
+@dataclass
 class PPOConfig:
-    batch_size = 32
-    n_workers = 64
-    lr = 1e-3
-    entropy_reg = 0.05
-    gamma = 0.8
-    epsilon = 0.2
-    update_epochs = 5
+    """
+    Global PPO config
+    """
+    batch_size: int = 256
+    n_workers: int = 64
+    lr: float = 1e-3
+    entropy_reg: float = 0.05
+    gamma: float = 0.8
+    epsilon: float = 0.2
+    update_epochs: int = 5
 
 
+@dataclass
 class DemosConfig:
-    n_steps = 10000
+    n_steps: int = 10000
 
 
+@dataclass
+class AIRLConfig:
+    expert_data_path: str = 'demonstrations/ppo_demos_size5.pk'
+    env_steps: int = 1000000
+
+
+@dataclass
+class DiscriminatorConfig:
+    batch_size: int = 1024
+    lr: float = 5e-4
+
+
+@dataclass
 class Config:
-    env: Type[EnvConfig] = EnvConfig
-    ppo_train: Type[PPOTrainConfig] = PPOTrainConfig
-    ppo: Type[PPOConfig] = PPOConfig
-    demos: Type[DemosConfig] = DemosConfig
+    env: EnvConfig = field(default_factory=EnvConfig)
+    ppo_train: PPOTrainConfig = field(default_factory=PPOTrainConfig)
+    ppo: PPOConfig = field(default_factory=PPOConfig)
+    demos: DemosConfig = field(default_factory=DemosConfig)
+    airl: AIRLConfig = field(default_factory=AIRLConfig)
+    discriminator: DiscriminatorConfig = field(default_factory=DiscriminatorConfig)
+    device: str = 'cuda:0'
 
-    def __str__(self):
-        return str(to_dict(self))
-
-    def __repr__(self):
-        return self.__str__()
+    def as_dict(self):
+        return asdict(self)
 
 
-def to_dict(obj):
-    if not hasattr(obj, '__dict__'):
-        return obj
-    result = {}
-    for key, value in obj.__dict__.items():
-        if not key.startswith('__'):
-            if isinstance(value, (list, tuple)):
-                result[key] = [to_dict(item) for item in value]
-            else:
-                result[key] = to_dict(value)
-    return result
-
+CONFIG = Config()
 
 if __name__ == '__main__':
-    print(to_dict(Config))
-    print(Config.ppo.lr)
+    print(CONFIG.as_dict())
+    print(CONFIG.ppo.lr)
+    CONFIG.ppo.lr = 1e-4
+    print(CONFIG.ppo.lr)

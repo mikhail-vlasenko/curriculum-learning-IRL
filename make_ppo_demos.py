@@ -3,7 +3,7 @@ import random
 import wandb
 from tqdm import tqdm
 
-from config import Config, to_dict
+from config import CONFIG
 from rl_algos.ppo_from_airl import *
 import torch
 import pickle
@@ -11,12 +11,12 @@ from env_factory import make_env
 
 
 # Use GPU if available
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+CONFIG.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 if not torch.cuda.is_available():
     print('WARNING: CUDA not available. Using CPU.')
 
 # Initialize Environment
-env = make_env(Config)
+env = make_env()
 
 # Fetch Shapes
 n_actions = env.action_space.n
@@ -25,19 +25,19 @@ obs_shape = env.observation_space.shape
 # Load Pretrained PPO
 ppo = PPO(state_shape=obs_shape[0], n_actions=n_actions, simple_architecture=True).to(device)
 
-if Config.ppo_train.do_train:
-    wandb.init(project='PPO', config=to_dict(Config))
+if CONFIG.ppo_train.do_train:
+    wandb.init(project='PPO', config=CONFIG.as_dict())
 
-    if Config.ppo_train.load_from is not None:
-        ppo.load_state_dict(torch.load(Config.ppo_train.load_from))
+    if CONFIG.ppo_train.load_from is not None:
+        ppo.load_state_dict(torch.load(CONFIG.ppo_train.load_from))
 
-    optimizer = torch.optim.Adam(ppo.parameters(), lr=Config.ppo.lr)
-    dataset = TrajectoryDataset(batch_size=Config.ppo.batch_size, n_workers=Config.ppo.n_workers)
+    optimizer = torch.optim.Adam(ppo.parameters(), lr=CONFIG.ppo.lr)
+    dataset = TrajectoryDataset(batch_size=CONFIG.ppo.batch_size, n_workers=CONFIG.ppo.n_workers)
 
     states, info = env.reset()
     states_tensor = torch.tensor(states).float().to(device)
 
-    for t in tqdm(range(int(Config.ppo_train.env_steps / Config.ppo.n_workers))):
+    for t in tqdm(range(int(CONFIG.ppo_train.env_steps / CONFIG.ppo.n_workers))):
         action, log_probs = ppo.act(states_tensor)
         next_states, rewards, terminated, truncated, info = env.step(action)
         done = terminated | truncated
@@ -46,8 +46,8 @@ if Config.ppo_train.do_train:
         train_ready = dataset.write_tuple(states, action, rewards, done, log_probs, logs=rewards)
 
         if train_ready:
-            update_policy(ppo, dataset, optimizer, Config.ppo.gamma, Config.ppo.epsilon, Config.ppo.update_epochs,
-                          entropy_reg=Config.ppo.entropy_reg)
+            update_policy(ppo, dataset, optimizer, CONFIG.ppo.gamma, CONFIG.ppo.epsilon, CONFIG.ppo.update_epochs,
+                          entropy_reg=CONFIG.ppo.entropy_reg)
             wandb.log({'Reward': dataset.log_objectives().mean()})
             wandb.log({'Returns': dataset.log_returns().mean()})
             wandb.log({'Lengths': dataset.log_lengths().mean()})
@@ -61,11 +61,11 @@ if Config.ppo_train.do_train:
     torch.save(ppo.state_dict(), 'saved_models/ppo_expert.pt')
     env.close()
 else:
-    ppo.load_state_dict(torch.load(Config.ppo_train.load_from))
+    ppo.load_state_dict(torch.load(CONFIG.ppo_train.load_from))
 
 
-Config.env.vectorized = False
-env = make_env(Config)
+CONFIG.env.vectorized = False
+env = make_env()
 
 states, info = env.reset()
 states_tensor = torch.tensor(states).float().to(device)
@@ -74,7 +74,7 @@ episode = {'states': [], 'actions': []}
 episode_cnt = 0
 
 
-for t in tqdm(range(Config.demos.n_steps)):
+for t in tqdm(range(CONFIG.demos.n_steps)):
     action, log_probs = ppo.act(states_tensor)
     action = action.item()
     next_states, reward, terminated, truncated, info = env.step(action)
@@ -95,5 +95,5 @@ for t in tqdm(range(Config.demos.n_steps)):
 print('Sample:')
 for _ in range(2):
     print(dataset[random.randint(0, len(dataset) - 1)])
-pickle.dump(dataset, open(f'demonstrations/ppo_demos_size{Config.env.grid_size}.pk', 'wb'))
+pickle.dump(dataset, open(f'demonstrations/ppo_demos_size{CONFIG.env.grid_size}.pk', 'wb'))
 env.close()

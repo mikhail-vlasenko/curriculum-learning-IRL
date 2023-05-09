@@ -1,11 +1,14 @@
 from typing import List, Dict
 
 import numpy as np
+import torch
 
 
 class VecEnv:
-    def __init__(self, env_list):
+    def __init__(self, env_list, tensor_state: bool, device=None):
         self.env_list = env_list
+        self.tensor_state = tensor_state
+        self.device = device
         self.n_envs = len(env_list)
         self.action_space = self.env_list[0].action_space
         self.observation_space = self.env_list[0].observation_space
@@ -43,7 +46,10 @@ class VecEnv:
             done_list.append(done_i)
             info_list.append(info_i)
 
-        return np.stack(obs_list, axis=0), np.array(rew_list), \
+        states = np.stack(obs_list, axis=0)
+        if self.tensor_state:
+            states = torch.tensor(states).float().to(self.device)
+        return states, np.array(rew_list), \
             np.array(done_list), np.full(self.n_envs, False), info_list
 
     def close(self):

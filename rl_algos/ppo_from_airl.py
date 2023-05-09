@@ -79,12 +79,14 @@ class TrajectoryDataset:
         self.trajectories: List[Dict] = []
         self.buffer = [{'states': [], 'actions': [], 'rewards': [], 'log_probs': [], 'latents': None, 'logs': []}
                        for _ in range(n_workers)]
+        self.step_count = 0
 
     def reset_buffer(self, i):
         self.buffer[i] = {'states': [], 'actions': [], 'rewards': [], 'log_probs': [], 'latents': None, 'logs': []}
 
     def reset_trajectories(self):
         self.trajectories = []
+        self.step_count = 0
 
     def write_tuple(self, states, actions, rewards, done, log_probs, logs=None) -> bool:
         # Takes states of shape (n_workers, state_shape[0], state_shape[1])
@@ -99,12 +101,10 @@ class TrajectoryDataset:
 
             if done[i]:
                 self.trajectories.append(self.buffer[i].copy())
+                self.step_count += len(self.buffer[i]['actions'])
                 self.reset_buffer(i)
 
-        if len(self.trajectories) >= self.batch_size:
-            return True
-        else:
-            return False
+        return self.step_count >= self.batch_size
 
     def log_returns(self):
         # Calculates (undiscounted) returns in self.trajectories
