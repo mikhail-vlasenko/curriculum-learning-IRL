@@ -6,7 +6,7 @@ import numpy as np
 class GridWorldEnv(Env):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
 
-    def __init__(self, render_mode=None, grid_size=5):
+    def __init__(self, render_mode=None, grid_size=5, max_steps=None, obs_size=3):
         self.size = grid_size  # The size of the square grid
         self.window_size = 512  # The size of the PyGame window
 
@@ -16,6 +16,7 @@ class GridWorldEnv(Env):
             {
                 "agent": spaces.Box(0, grid_size - 1, shape=(2,), dtype=np.int32),
                 "target": spaces.Box(0, grid_size - 1, shape=(2,), dtype=np.int32),
+                "reward_grid": spaces.Box(0, 1, shape=(1 + 2 * obs_size, 1 + 2 * obs_size), dtype=np.int32),
             }
         )
 
@@ -33,6 +34,11 @@ class GridWorldEnv(Env):
             2: np.array([-1, 0]),
             3: np.array([0, -1]),
         }
+
+        if max_steps is None:
+            self.max_steps = 2 * (self.size ** 2)
+        else:
+            self.max_steps = max_steps
 
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
@@ -98,7 +104,7 @@ class GridWorldEnv(Env):
         if self.render_mode == "human":
             self._render_frame()
 
-        if not terminated and self._time >= 2 * (self.size ** 2):
+        if not terminated and self._time >= self.max_steps:
             return observation, -1, True, True, info
 
         self._time += 1
