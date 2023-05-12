@@ -18,7 +18,8 @@ class PPO(nn.Module):
         self.simple_architecture = simple_architecture
 
         if self.simple_architecture:
-            self.l1 = nn.Linear(state_shape, 32)
+            self.l1 = nn.Linear(state_shape, 256)
+            self.l2 = nn.Linear(256, 32)
             self.actor_out = nn.Linear(32, n_actions)
             self.critic_out = nn.Linear(32, 1)
         else:
@@ -38,6 +39,7 @@ class PPO(nn.Module):
     def forward(self, x) -> (torch.Tensor, torch.Tensor):
         if self.simple_architecture:
             x = self.relu(self.l1(x))
+            x = self.relu(self.l2(x))
             x_actor = self.softmax(self.actor_out(x))
             x_critic = self.critic_out(x)
 

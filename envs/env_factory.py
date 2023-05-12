@@ -23,7 +23,10 @@ def make_env():
 
 
 def _make_one():
-    env = gym.make(CONFIG.env.id, grid_size=CONFIG.env.grid_size)
+    render = None
+    if CONFIG.env.render:
+        render = 'human'
+    env = gym.make(CONFIG.env.id, grid_size=CONFIG.env.grid_size, max_steps=CONFIG.env.max_steps, render_mode=render)
     for wrapper in CONFIG.env.wrappers:
         env = eval(wrapper)(env)
     return env

@@ -24,8 +24,8 @@ class GridWorldEnv(Env):
         self.obs_side_length = 1 + 2 * obs_dist
         self.observation_space = spaces.Dict(
             {
-                "agent": spaces.Box(0, grid_size - 1, shape=(2,), dtype=np.int32),
-                "target": spaces.Box(0, grid_size - 1, shape=(2,), dtype=np.int32),
+                "agent": spaces.Box(self.obs_dist, self.obs_dist + grid_size - 1, shape=(2,), dtype=np.int32),
+                "target": spaces.Box(self.obs_dist, self.obs_dist + grid_size - 1, shape=(2,), dtype=np.int32),
                 # 0 for tiles out of bounds
                 "reward_grid": spaces.Box(-1, 1, shape=(self.obs_side_length, self.obs_side_length), dtype=np.float64),
                 # 1 if agent can move to this tile, 0 if not
@@ -34,8 +34,8 @@ class GridWorldEnv(Env):
             }
         )
 
-        self.walkable = np.ones((self.size + 2 * self.obs_dist, self.size + 2 * self.obs_dist), dtype=np.int32)
-        self.walkable[self.obs_dist : self.obs_dist + self.size, self.obs_dist : self.obs_dist + self.size] = 0
+        self.walkable = np.zeros((self.size + 2 * self.obs_dist, self.size + 2 * self.obs_dist), dtype=np.int32)
+        self.walkable[self.obs_dist : self.obs_dist + self.size, self.obs_dist : self.obs_dist + self.size] = 1
 
         # We have 4 actions, corresponding to "right", "up", "left", "down", "right"
         self.action_space = spaces.Discrete(4)
@@ -80,7 +80,7 @@ class GridWorldEnv(Env):
             "walkable_grid": self.walkable[
                 idx[0][0]:idx[0][1], idx[1][0]:idx[1][1]
             ],
-            "time_till_end": self.max_steps - self._time,
+            "time_till_end": np.array([self.max_steps - self._time]),
         }
 
     def _get_info(self):
@@ -130,7 +130,7 @@ class GridWorldEnv(Env):
         )
         # An episode is done iff the agent has reached the target
         terminated = np.array_equal(self._agent_location, self._target_location)
-        reward = self.get_tile_reward()
+        reward = self.get_tile_reward(reset=True)
         observation = self._get_obs()
         info = self._get_info()
 
@@ -152,8 +152,11 @@ class GridWorldEnv(Env):
             [self._agent_location[1] - self.obs_dist, self._agent_location[1] + self.obs_dist + 1],
         ]
 
-    def get_tile_reward(self):
-        return self.rewards[self._agent_location[0], self._agent_location[1]]
+    def get_tile_reward(self, reset=False):
+        r = self.rewards[self._agent_location[0], self._agent_location[1]]
+        if reset:
+            self.rewards[self._agent_location[0], self._agent_location[1]] = 0
+        return r
 
     def render(self):
         if self.render_mode == "rgb_array":
@@ -173,20 +176,35 @@ class GridWorldEnv(Env):
             self.window_size / self.size
         )  # The size of a single grid square in pixels
 
+        # draw rewards
+        for x in range(self.obs_dist, self.size + self.obs_dist):
+            for y in range(self.obs_dist, self.size + self.obs_dist):
+                if self.rewards[x, y] != 0:
+                    color = (0, 230 - self.rewards[x, y] * 100, 0) if self.rewards[x, y] > 0 else (230 + self.rewards[x, y] * 100, 0, 0)
+                    pygame.draw.rect(
+                        canvas,
+                        color,
+                        pygame.Rect(
+                            (pix_square_size * (x - self.obs_dist), pix_square_size * (y - self.obs_dist)),
+                            (pix_square_size, pix_square_size),
+                        ),
+                    )
+
         # First we draw the target
         pygame.draw.rect(
             canvas,
-            (255, 0, 0),
+            (0, 255, 255),
             pygame.Rect(
-                pix_square_size * self._target_location,
+                pix_square_size * (self._target_location - [self.obs_dist, self.obs_dist]),
                 (pix_square_size, pix_square_size),
             ),
         )
+
         # Now we draw the agent
         pygame.draw.circle(
             canvas,
             (0, 0, 255),
-            (self._agent_location + 0.5) * pix_square_size,
+            ((self._agent_location - [self.obs_dist, self.obs_dist]) + 0.5) * pix_square_size,
             pix_square_size / 3,
         )
 

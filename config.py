@@ -8,9 +8,11 @@ import torch
 class EnvConfig:
     id: str = 'gym_examples/GridWorld-v0'
     grid_size: int = 5
+    max_steps: int = 15
     wrappers: List[str] = field(default_factory=lambda: ['FlattenObs'])
     vectorized: bool = True
     tensor_state: bool = False
+    render: bool = False
 
 
 @dataclass
@@ -19,9 +21,9 @@ class PPOTrainConfig:
     Config for training the expert PPO
     """
     do_train: bool = True
-    env_steps: int = 30000
-    # load_from: str = 'saved_models/size5_ppo_expert.pt'
-    load_from: str = None
+    env_steps: int = 1000000
+    load_from: str = 'saved_models/ppo_expert.pt'
+    # load_from: str = None
     ppo_save_path: str = 'saved_models/ppo_expert.pt'
 
 
@@ -30,11 +32,11 @@ class PPOConfig:
     """
     Global PPO config
     """
-    batch_size: int = 256
+    batch_size: int = 1024
     n_workers: int = 64
     lr: float = 1e-3
     entropy_reg: float = 0.05
-    gamma: float = 0.8
+    gamma: float = 0.9
     epsilon: float = 0.2
     update_epochs: int = 5
 

@@ -10,11 +10,6 @@ import pickle
 from envs.env_factory import make_env
 
 
-# Use GPU if available
-CONFIG.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-if not torch.cuda.is_available():
-    print('WARNING: CUDA not available. Using CPU.')
-
 # Initialize Environment
 env = make_env()
 
@@ -62,6 +57,10 @@ if CONFIG.ppo_train.do_train:
     model_art = wandb.Artifact('expert_model', type='model')
     model_art.add_file(CONFIG.ppo_train.ppo_save_path)
     wandb.log_artifact(model_art)
+
+    model_code_art = wandb.Artifact('model_code', type='code')
+    model_code_art.add_file('rl_algos/ppo_from_airl.py')
+    wandb.log_artifact(model_code_art)
 
     env.close()
 else:

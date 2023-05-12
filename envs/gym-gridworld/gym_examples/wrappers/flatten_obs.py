@@ -19,6 +19,6 @@ class FlattenObs(gym.ObservationWrapper):
             obs["target"],
             obs["reward_grid"].flatten(),
             obs["walkable_grid"].flatten(),
-            np.array([obs["time_till_end"]])
+            obs["time_till_end"],
         ))
         return new_obs
