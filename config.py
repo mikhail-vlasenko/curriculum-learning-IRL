@@ -8,7 +8,7 @@ import torch
 class EnvConfig:
     id: str = 'gym_examples/GridWorld-v0'
     grid_size: int = 5
-    wrappers: List[str] = field(default_factory=lambda: ['RelativePosition'])
+    wrappers: List[str] = field(default_factory=lambda: ['FlattenObs'])
     vectorized: bool = True
     tensor_state: bool = False
 
@@ -20,7 +20,8 @@ class PPOTrainConfig:
     """
     do_train: bool = True
     env_steps: int = 30000
-    load_from: str = 'saved_models/size5_ppo_expert.pt'
+    # load_from: str = 'saved_models/size5_ppo_expert.pt'
+    load_from: str = None
     ppo_save_path: str = 'saved_models/ppo_expert.pt'
 
 

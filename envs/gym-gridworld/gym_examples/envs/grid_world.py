@@ -4,21 +4,38 @@ import numpy as np
 
 
 class GridWorldEnv(Env):
+    """
+    Valid agent and target locations are in the range [obs_dist, size + obs_dist - 1].
+    """
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
 
-    def __init__(self, render_mode=None, grid_size=5, max_steps=None, obs_size=3):
+    def __init__(self, render_mode=None, grid_size=5, max_steps=None, obs_dist=2, checkers_negative_reward=False):
         self.size = grid_size  # The size of the square grid
         self.window_size = 512  # The size of the PyGame window
+        self.obs_dist = obs_dist
 
-        # Observations are dictionaries with the agent's and the target's location.
-        # Each location is encoded as an element of {0, ..., `size`}^2, i.e. MultiDiscrete([size, size]).
+        self.rewards = np.random.uniform(-1, 1, size=(self.size + 2 * self.obs_dist, self.size + 2 * self.obs_dist))
+
+        if max_steps is None:
+            self.max_steps = 2 * (self.size ** 2)
+        else:
+            self.max_steps = max_steps
+
+        self.obs_side_length = 1 + 2 * obs_dist
         self.observation_space = spaces.Dict(
             {
                 "agent": spaces.Box(0, grid_size - 1, shape=(2,), dtype=np.int32),
                 "target": spaces.Box(0, grid_size - 1, shape=(2,), dtype=np.int32),
-                "reward_grid": spaces.Box(0, 1, shape=(1 + 2 * obs_size, 1 + 2 * obs_size), dtype=np.int32),
+                # 0 for tiles out of bounds
+                "reward_grid": spaces.Box(-1, 1, shape=(self.obs_side_length, self.obs_side_length), dtype=np.float64),
+                # 1 if agent can move to this tile, 0 if not
+                "walkable_grid": spaces.MultiBinary(n=(self.obs_side_length, self.obs_side_length)),
+                "time_till_end": spaces.Box(0, self.max_steps, shape=(1,), dtype=np.int32),
             }
         )
+
+        self.walkable = np.ones((self.size + 2 * self.obs_dist, self.size + 2 * self.obs_dist), dtype=np.int32)
+        self.walkable[self.obs_dist : self.obs_dist + self.size, self.obs_dist : self.obs_dist + self.size] = 0
 
         # We have 4 actions, corresponding to "right", "up", "left", "down", "right"
         self.action_space = spaces.Discrete(4)
@@ -35,10 +52,9 @@ class GridWorldEnv(Env):
             3: np.array([0, -1]),
         }
 
-        if max_steps is None:
-            self.max_steps = 2 * (self.size ** 2)
-        else:
-            self.max_steps = max_steps
+        self._time = 0
+        self._agent_location = np.zeros(2, dtype=int)
+        self._target_location = np.zeros(2, dtype=int)
 
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
@@ -54,7 +70,18 @@ class GridWorldEnv(Env):
         self.clock = None
 
     def _get_obs(self):
-        return {"agent": self._agent_location, "target": self._target_location}
+        idx = self.get_observation_boundaries()
+        return {
+            "agent": self._agent_location,
+            "target": self._target_location,
+            "reward_grid": self.rewards[
+                idx[0][0]:idx[0][1], idx[1][0]:idx[1][1]
+            ],
+            "walkable_grid": self.walkable[
+                idx[0][0]:idx[0][1], idx[1][0]:idx[1][1]
+            ],
+            "time_till_end": self.max_steps - self._time,
+        }
 
     def _get_info(self):
         return {
@@ -70,14 +97,20 @@ class GridWorldEnv(Env):
         self._time = 0
 
         # Choose the agent's location uniformly at random
-        self._agent_location = self.np_random.integers(0, self.size, size=2, dtype=int)
+        self._agent_location = self.np_random.integers(self.obs_dist, self.size + self.obs_dist, size=2, dtype=int)
 
         # We will sample the target's location randomly until it does not coincide with the agent's location
         self._target_location = self._agent_location
         while np.array_equal(self._target_location, self._agent_location):
             self._target_location = self.np_random.integers(
-                0, self.size, size=2, dtype=int
+                self.obs_dist, self.size + self.obs_dist, size=2, dtype=int
             )
+
+        # initialize random rewards
+        self.rewards = np.random.uniform(-1, 1, size=(self.size + 2 * self.obs_dist, self.size + 2 * self.obs_dist))
+        self.rewards[self._agent_location[0], self._agent_location[1]] = 0
+        self.rewards[self._target_location[0], self._target_location[1]] = 0
+        self.rewards[self.walkable == 0] = 0
 
         observation = self._get_obs()
         info = self._get_info()
@@ -93,22 +126,34 @@ class GridWorldEnv(Env):
         direction = self._action_to_direction[action]
         # We use `np.clip` to make sure we don't leave the grid
         self._agent_location = np.clip(
-            self._agent_location + direction, 0, self.size - 1
+            self._agent_location + direction, self.obs_dist, self.obs_dist + self.size - 1
         )
         # An episode is done iff the agent has reached the target
         terminated = np.array_equal(self._agent_location, self._target_location)
-        reward = 1 if terminated else 0  # Binary sparse rewards
+        reward = self.get_tile_reward()
         observation = self._get_obs()
         info = self._get_info()
 
         if self.render_mode == "human":
             self._render_frame()
 
-        if not terminated and self._time >= self.max_steps:
-            return observation, -1, True, True, info
-
         self._time += 1
+
+        if not terminated and self._time >= self.max_steps:
+            # also set truncated to true
+            reward = -0.5 * self.max_steps
+            return observation, reward, True, True, info
+
         return observation, reward, terminated, False, info
+
+    def get_observation_boundaries(self):
+        return [
+            [self._agent_location[0] - self.obs_dist, self._agent_location[0] + self.obs_dist + 1],
+            [self._agent_location[1] - self.obs_dist, self._agent_location[1] + self.obs_dist + 1],
+        ]
+
+    def get_tile_reward(self):
+        return self.rewards[self._agent_location[0], self._agent_location[1]]
 
     def render(self):
         if self.render_mode == "rgb_array":

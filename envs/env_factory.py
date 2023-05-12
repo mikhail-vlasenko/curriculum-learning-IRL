@@ -5,6 +5,8 @@ import gym_examples
 from gym_examples.wrappers.relative_position import RelativePosition
 from gym_examples.wrappers.vec_env import VecEnv
 from gym_examples.wrappers.clip_reward import ClipReward
+from gym_examples.wrappers.flatten_obs import FlattenObs
+from gym_examples.wrappers.only_end_reward import OnlyEndReward
 import gymnasium as gym
 
 from gym_examples.wrappers.vec_env import VecEnv
