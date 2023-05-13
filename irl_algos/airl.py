@@ -5,41 +5,43 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
+from config import CONFIG
 from rl_algos.ppo_from_airl import PPO
 
-# from envs.gym_wrapper import *
 
-# Use GPU if available
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+device = CONFIG.device
 
 
 class DiscriminatorMLP(nn.Module):
-    def __init__(self, state_shape, in_channels=6, simple_architecture=False):
+    def __init__(self, state_shape, in_channels=6):
         super(DiscriminatorMLP, self).__init__()
 
         self.state_shape = state_shape
         self.in_channels = in_channels
-        self.simple_architecture = simple_architecture
+        self.simple_architecture = CONFIG.discriminator.simple_architecture
 
         # Layers
         # self.action_embedding = nn.Linear(n_actions, state_shape[0]*state_shape[1])
         if self.simple_architecture:
-            self.reward_l1 = nn.Linear(state_shape, 32)
-            self.reward_out = nn.Linear(32, 1)
+            self.reward_l1 = nn.Linear(state_shape, CONFIG.discriminator.dimensions[0])
+            self.reward_l2 = nn.Linear(CONFIG.discriminator.dimensions[0], CONFIG.discriminator.dimensions[1])
+            self.reward_out = nn.Linear(CONFIG.discriminator.dimensions[1], 1)
         else:
             self.reward_l1 = nn.Linear(self.in_channels*self.state_shape[0]*self.state_shape[1], 256)
+            self.reward_l2 = nn.Linear(256, 512)
             self.reward_out = nn.Linear(256, 1)
-        self.reward_l2 = nn.Linear(256, 512)
-        self.reward_l3 = nn.Linear(512, 256)
 
         if self.simple_architecture:
-            self.value_l1 = nn.Linear(state_shape, 32)
-            self.value_out = nn.Linear(32, 1)
+            self.value_l1 = nn.Linear(state_shape, CONFIG.discriminator.dimensions[0])
+            self.value_l2 = nn.Linear(CONFIG.discriminator.dimensions[0], CONFIG.discriminator.dimensions[1])
+            self.value_out = nn.Linear(CONFIG.discriminator.dimensions[1], 1)
         else:
             self.value_l1 = nn.Linear(self.in_channels*self.state_shape[0]*self.state_shape[1], 256)
+            self.value_l2 = nn.Linear(256, 512)
             self.value_out = nn.Linear(256, 1)
-        self.value_l2 = nn.Linear(256, 512)
+
         self.value_l3 = nn.Linear(512, 256)
+        self.reward_l3 = nn.Linear(512, 256)
 
         # Activation
         self.relu = nn.LeakyReLU(0.01)
@@ -49,6 +51,7 @@ class DiscriminatorMLP(nn.Module):
 
         if self.simple_architecture:
             x = self.relu(self.reward_l1(state))
+            # x = self.relu(self.reward_l2(x))
             x = x.view(x.shape[0], -1)
             x = self.reward_out(x)
             return x
@@ -66,6 +69,7 @@ class DiscriminatorMLP(nn.Module):
 
         if self.simple_architecture:
             x = self.relu(self.value_l1(state))
+            # x = self.relu(self.value_l2(x))
             x = x.view(x.shape[0], -1)
             x = self.value_out(x)
             return x

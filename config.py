@@ -22,8 +22,8 @@ class PPOTrainConfig:
     """
     do_train: bool = True
     env_steps: int = 1000000
-    load_from: str = 'saved_models/ppo_expert.pt'
-    # load_from: str = None
+    # load_from: str = 'saved_models/ppo_expert.pt'
+    load_from: str = None
     ppo_save_path: str = 'saved_models/ppo_expert.pt'
 
 
@@ -39,6 +39,9 @@ class PPOConfig:
     gamma: float = 0.9
     epsilon: float = 0.2
     update_epochs: int = 5
+    nonlinear: str = 'relu'  # tanh, relu
+    dimensions: List[int] = field(default_factory=lambda: [256, 32])
+    simple_architecture: bool = True
 
 
 @dataclass
@@ -64,6 +67,8 @@ class AIRLConfig:
 class DiscriminatorConfig:
     batch_size: int = 1024
     lr: float = 5e-4
+    simple_architecture: bool = True
+    dimensions: List[int] = field(default_factory=lambda: [32, 32])
 
 
 @dataclass

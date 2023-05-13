@@ -20,7 +20,7 @@ n_actions = env.action_space.n
 obs_shape = env.observation_space.shape
 
 # Load Pretrained PPO
-ppo = PPO(state_shape=obs_shape[0], n_actions=n_actions, simple_architecture=True).to(device)
+ppo = PPO(state_shape=obs_shape[0], n_actions=n_actions).to(device)
 
 ppo.load_state_dict(torch.load('../' + CONFIG.ppo_train.load_from))
 

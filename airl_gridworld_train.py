@@ -26,8 +26,8 @@ def main():
     obs_shape = env.observation_space.shape
 
     # Initialize Models
-    ppo = PPO(state_shape=obs_shape[0], n_actions=n_actions, simple_architecture=True).to(device)
-    discriminator = DiscriminatorMLP(state_shape=obs_shape[0], simple_architecture=True).to(device)
+    ppo = PPO(state_shape=obs_shape[0], n_actions=n_actions).to(device)
+    discriminator = DiscriminatorMLP(state_shape=obs_shape[0]).to(device)
     optimizer = torch.optim.Adam(ppo.parameters(), lr=CONFIG.ppo.lr)
     optimizer_discriminator = torch.optim.Adam(discriminator.parameters(), lr=CONFIG.discriminator.lr)
     dataset = TrajectoryDataset(batch_size=CONFIG.ppo.batch_size, n_workers=CONFIG.ppo.n_workers)

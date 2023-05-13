@@ -18,7 +18,7 @@ n_actions = env.action_space.n
 obs_shape = env.observation_space.shape
 
 # Load Pretrained PPO
-ppo = PPO(state_shape=obs_shape[0], n_actions=n_actions, simple_architecture=True).to(device)
+ppo = PPO(state_shape=obs_shape[0], n_actions=n_actions).to(device)
 
 if CONFIG.ppo_train.do_train:
     wandb.init(project='PPO', config=CONFIG.as_dict())
@@ -79,7 +79,7 @@ episode_cnt = 0
 for _ in tqdm(range(CONFIG.demos.n_steps)):
     action, log_probs = ppo.act(states_tensor)
     action = action.item()
-    next_states, reward, terminated, truncated, info = env.step(action)
+    next_states, reward, terminated, truncated, _ = env.step(action)
     done = terminated or truncated
     episode['states'].append(states)
     # Note: Actions currently append as arrays and not integers!

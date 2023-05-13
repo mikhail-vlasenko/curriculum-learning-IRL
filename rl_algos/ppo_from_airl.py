@@ -6,22 +6,24 @@ import torch.nn.functional as F
 from torch.distributions import Categorical
 import numpy as np
 
-# Use GPU if available
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+from config import CONFIG
+
+
+device = CONFIG.device
 
 
 class PPO(nn.Module):
-    def __init__(self, state_shape, in_channels=6, n_actions=9, simple_architecture=False):
+    def __init__(self, state_shape, in_channels=6, n_actions=9):
         super(PPO, self).__init__()
 
         self.state_shape = state_shape
-        self.simple_architecture = simple_architecture
+        self.simple_architecture = CONFIG.ppo.simple_architecture
 
         if self.simple_architecture:
-            self.l1 = nn.Linear(state_shape, 256)
-            self.l2 = nn.Linear(256, 32)
-            self.actor_out = nn.Linear(32, n_actions)
-            self.critic_out = nn.Linear(32, 1)
+            self.l1 = nn.Linear(state_shape, CONFIG.ppo.dimensions[0])
+            self.l2 = nn.Linear(CONFIG.ppo.dimensions[0], CONFIG.ppo.dimensions[1])
+            self.actor_out = nn.Linear(CONFIG.ppo.dimensions[1], n_actions)
+            self.critic_out = nn.Linear(CONFIG.ppo.dimensions[1], 1)
         else:
             self.in_channels = in_channels
 
@@ -33,24 +35,29 @@ class PPO(nn.Module):
             self.actor_out = nn.Linear(32*(state_shape[0]-3)*(state_shape[1]-3), n_actions)
             self.critic_out = nn.Linear(32*(state_shape[0]-3)*(state_shape[1]-3), 1)
 
-        self.relu = nn.ReLU()
+        if CONFIG.ppo.nonlinear == 'tanh':
+            self.non_linear = nn.Tanh()
+        elif CONFIG.ppo.nonlinear == 'relu':
+            self.non_linear = nn.ReLU()
+        else:
+            raise ValueError(f'Non-linear function {CONFIG.ppo.nonlinear} is not supported')
         self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, x) -> (torch.Tensor, torch.Tensor):
         if self.simple_architecture:
-            x = self.relu(self.l1(x))
-            x = self.relu(self.l2(x))
+            x = self.non_linear(self.l1(x))
+            x = self.non_linear(self.l2(x))
             x_actor = self.softmax(self.actor_out(x))
             x_critic = self.critic_out(x)
 
             return x_actor, x_critic
 
         x = x.view(-1, self.in_channels, self.state_shape[0], self.state_shape[1])
-        x = self.relu(self.l1(x))
-        x = self.relu(self.l2(x))
-        x_actor = self.relu(self.actor_l3(x))
+        x = self.non_linear(self.l1(x))
+        x = self.non_linear(self.l2(x))
+        x_actor = self.non_linear(self.actor_l3(x))
         x_actor = x_actor.view(x_actor.shape[0], -1)
-        x_critic = self.relu(self.critic_l3(x))
+        x_critic = self.non_linear(self.critic_l3(x))
         x_critic = x_critic.view(x_critic.shape[0], -1)
         x_actor = self.softmax(self.actor_out(x_actor))
         x_critic = self.critic_out(x_critic)
