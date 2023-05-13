@@ -24,7 +24,7 @@ class PPOTrainConfig:
     env_steps: int = 1000000
     # load_from: str = 'saved_models/ppo_expert.pt'
     load_from: str = None
-    ppo_save_path: str = 'saved_models/ppo_expert.pt'
+    save_to: str = 'saved_models/ppo_expert.pt'
 
 
 @dataclass
@@ -40,7 +40,7 @@ class PPOConfig:
     epsilon: float = 0.2
     update_epochs: int = 5
     nonlinear: str = 'relu'  # tanh, relu
-    dimensions: List[int] = field(default_factory=lambda: [256, 32])
+    dimensions: List[int] = field(default_factory=lambda: [64, 64])
     simple_architecture: bool = True
 
 
@@ -55,12 +55,16 @@ class AIRLConfig:
     Config for training with AIRL
     """
     expert_data_path: str = 'demonstrations/ppo_demos_size5.pk'
-    env_steps: int = 600000
+    env_steps: int = 500000
 
-    disc_load_from: str = None
-    ppo_load_from: str = None
-    disc_save_path: str = 'saved_models/discriminator.pt'
-    ppo_save_path: str = 'saved_models/airl_ppo.pt'
+    # disc_load_from: str = None
+    # ppo_load_from: str = None
+    disc_load_from: str = 'saved_models/discriminator.pt'
+    ppo_load_from: str = 'saved_models/airl_ppo.pt'
+    load_from_checkpoint: bool = True  # if True, overwrites disc_load_from and ppo_load_from
+
+    disc_save_to: str = 'saved_models/discriminator.pt'
+    ppo_save_to: str = 'saved_models/airl_ppo.pt'
 
 
 @dataclass
@@ -80,6 +84,8 @@ class Config:
     airl: AIRLConfig = field(default_factory=AIRLConfig)
     discriminator: DiscriminatorConfig = field(default_factory=DiscriminatorConfig)
     device: str = 'cuda:0'
+    continued_ppo_training: bool = False
+    continued_airl_training: bool = False
 
     def as_dict(self):
         return asdict(self)
@@ -87,15 +93,27 @@ class Config:
 
 CONFIG = Config()
 
+if CONFIG.ppo_train.load_from is not None:
+    CONFIG.continued_ppo_training = True
+
+if CONFIG.airl.ppo_load_from is not None:
+    CONFIG.continued_airl_training = True
+
+if CONFIG.airl.load_from_checkpoint:
+    CONFIG.airl.disc_load_from = 'saved_models/checkpoints/discriminator_latest.pt'
+    CONFIG.airl.ppo_load_from = 'saved_models/checkpoints/ppo_latest.pt'
+
 CONFIG.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 if CONFIG.device == 'cpu':
     print('WARNING: CUDA not available. Using CPU.')
+
 
 EXPERT_DATA_PREFIX = 'demonstrations/ppo_demos_size'
 EXPERT_DATA_SUFFIX = '.pk'
 
 
 def set_experiment_config(grid_size: int = None, wrappers: List[str] = None):
+    print('Setting experiment config')
     if grid_size is not None:
         CONFIG.env.grid_size = grid_size
         CONFIG.airl.expert_data_path = EXPERT_DATA_PREFIX + str(grid_size) + EXPERT_DATA_SUFFIX

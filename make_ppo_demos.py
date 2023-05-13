@@ -53,9 +53,9 @@ if CONFIG.ppo_train.do_train:
         states = next_states.copy()
         states_tensor = torch.tensor(states).float().to(device)
 
-    torch.save(ppo.state_dict(), CONFIG.ppo_train.ppo_save_path)
+    torch.save(ppo.state_dict(), CONFIG.ppo_train.save_to)
     model_art = wandb.Artifact('expert_model', type='model')
-    model_art.add_file(CONFIG.ppo_train.ppo_save_path)
+    model_art.add_file(CONFIG.ppo_train.save_to)
     wandb.log_artifact(model_art)
 
     model_code_art = wandb.Artifact('model_code', type='code')

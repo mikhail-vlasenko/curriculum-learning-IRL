@@ -88,13 +88,13 @@ def main():
         state = next_state
         state_tensor = next_state_tensor
 
-    torch.save(discriminator.state_dict(), CONFIG.airl.disc_save_path)
-    torch.save(ppo.state_dict(), CONFIG.airl.ppo_save_path)
+    torch.save(discriminator.state_dict(), CONFIG.airl.disc_save_to)
+    torch.save(ppo.state_dict(), CONFIG.airl.save_to)
 
     # save model artifacts to wandb
     model_art = wandb.Artifact('airl_models', type='model')
-    model_art.add_file(CONFIG.airl.disc_save_path)
-    model_art.add_file(CONFIG.airl.ppo_save_path)
+    model_art.add_file(CONFIG.airl.disc_save_to)
+    model_art.add_file(CONFIG.airl.save_to)
     wandb.log_artifact(model_art)
 
     data_art = wandb.Artifact('airl_data', type='dataset')
@@ -105,6 +105,6 @@ def main():
 
 
 if __name__ == '__main__':
-    set_experiment_config(grid_size=15)
+    # set_experiment_config(grid_size=15)
     wandb.init(project='AIRL', dir='wandb', config=CONFIG.as_dict(), tags=['single_dataset'])
     main()

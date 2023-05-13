@@ -179,8 +179,9 @@ class GridWorldEnv(Env):
         # draw rewards
         for x in range(self.obs_dist, self.size + self.obs_dist):
             for y in range(self.obs_dist, self.size + self.obs_dist):
-                if self.rewards[x, y] != 0:
-                    color = (0, 230 - self.rewards[x, y] * 100, 0) if self.rewards[x, y] > 0 else (230 + self.rewards[x, y] * 100, 0, 0)
+                r = self.rewards[x, y]
+                if r != 0:
+                    color = (255 - 255 * r, 255, 255 - 255 * r) if r > 0 else (255, 255 + 255 * r, 255 + 255 * r)
                     pygame.draw.rect(
                         canvas,
                         color,

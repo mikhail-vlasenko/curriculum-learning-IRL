@@ -6,10 +6,7 @@ import torch.nn.functional as F
 import numpy as np
 
 from config import CONFIG
-from rl_algos.ppo_from_airl import PPO
-
-
-device = CONFIG.device
+from rl_algos.ppo_from_airl import PPO, device
 
 
 class DiscriminatorMLP(nn.Module):
@@ -51,7 +48,7 @@ class DiscriminatorMLP(nn.Module):
 
         if self.simple_architecture:
             x = self.relu(self.reward_l1(state))
-            # x = self.relu(self.reward_l2(x))
+            x = self.relu(self.reward_l2(x))
             x = x.view(x.shape[0], -1)
             x = self.reward_out(x)
             return x
@@ -69,7 +66,7 @@ class DiscriminatorMLP(nn.Module):
 
         if self.simple_architecture:
             x = self.relu(self.value_l1(state))
-            # x = self.relu(self.value_l2(x))
+            x = self.relu(self.value_l2(x))
             x = x.view(x.shape[0], -1)
             x = self.value_out(x)
             return x
@@ -259,11 +256,11 @@ class Discriminator(nn.Module):
 
 def training_sampler(
         expert_trajectories: List[Dict], policy_trajectories: List[Dict], ppo: PPO, batch_size,
-        latent_posterior=None, only_expert=False, only_policy=False
+        only_expert=False, only_policy=False
 ):
     assert not (only_expert and only_policy), "Cannot sample only expert and only policy"
     states = []
-    action_probabilities = []
+    selected_actions = []
     next_states = []
     labels = []
     latents = []
@@ -291,31 +288,20 @@ def training_sampler(
         state = random_tau[random_state_idx]
         next_state = random_tau[random_state_idx+1]
 
-        # Sample random latent to condition ppo on for expert samples
-        if latent_posterior is not None:
-            raise NotImplementedError
-            # if expert_boolean == 1:
-            #     latent = latent_posterior.sample_prior()
-            #     latent = latent.to(device)
-            # else:
-            #     latent = torch.tensor(selected_trajectories[random_tau_idx]['latents']).to(device)
-            #
-            # action_probability, _ = ppo.forward(torch.tensor(state).float().to(device), latent)
-            # action_probability = action_probability.squeeze(0)
-            # latents.append(latent.cpu().item())
-        else:
-            action_probability, _ = ppo.forward(torch.tensor(state).float().to(device))
-            action_probability = action_probability.squeeze(0)
-
         # Get the action that was actually selected in the trajectory
         selected_action = selected_trajectories[random_tau_idx]['actions'][random_state_idx]
 
         states.append(state)
         next_states.append(next_state)
-        action_probabilities.append(action_probability[selected_action].item())
+        selected_actions.append(selected_action)
         labels.append(expert_boolean)
 
-    return torch.tensor(np.stack(states, axis=0)).float().to(device), \
+    states = np.stack(states, axis=0)
+    batched_action_probability, _ = ppo.forward(torch.tensor(states).float().to(device))
+    batched_action_probability = batched_action_probability.squeeze(0)
+    action_probabilities = [batched_action_probability[i][selected_actions[i]].item() for i in range(batch_size)]
+
+    return torch.tensor(states).float().to(device), \
         torch.tensor(np.stack(next_states, axis=0)).float().to(device), \
         torch.tensor(action_probabilities).float().to(device),\
         torch.tensor(labels).long().to(device), torch.tensor(latents).float().to(device)

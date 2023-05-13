@@ -17,8 +17,8 @@ def increasing_grid_size_curriculum(start_from=0):
     for i in range(start_from, len(grid_sizes)):
         set_experiment_config(grid_size=grid_sizes[i])
         if i > 0:
-            CONFIG.airl.ppo_load_from = CONFIG.airl.ppo_save_path
-            CONFIG.airl.disc_load_from = CONFIG.airl.disc_save_path
+            CONFIG.airl.ppo_load_from = CONFIG.airl.save_to
+            CONFIG.airl.disc_load_from = CONFIG.airl.disc_save_to
         main()
 
     wandb.finish()
