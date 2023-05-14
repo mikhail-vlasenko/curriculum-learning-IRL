@@ -1,10 +1,8 @@
-import random
-
 import wandb
 from tqdm import tqdm
 
 from config import CONFIG
-from rl_algos.ppo_from_airl import *
+from rl_algos.ppo_from_airl import PPO, TrajectoryDataset, update_policy, device
 import torch
 from envs.env_factory import make_env
 
