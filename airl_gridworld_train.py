@@ -2,7 +2,7 @@ import wandb
 
 from tqdm import tqdm
 
-from config import CONFIG, set_experiment_config
+from config import *
 from envs.env_factory import make_env
 from irl_algos.airl import *
 from rl_algos.ppo_from_airl import *
@@ -79,8 +79,8 @@ def main():
                        'Fake Accuracy': fake_acc,
                        'Real Accuracy': real_acc}, step=t * CONFIG.ppo.n_workers)
 
-            torch.save(discriminator.state_dict(), 'saved_models/checkpoints/discriminator_latest.pt')
-            torch.save(ppo.state_dict(), 'saved_models/checkpoints/ppo_latest.pt')
+            torch.save(discriminator.state_dict(), DISC_CHECKPOINT)
+            torch.save(ppo.state_dict(), PPO_CHECKPOINT)
 
             dataset.reset_trajectories()
 
@@ -89,12 +89,12 @@ def main():
         state_tensor = next_state_tensor
 
     torch.save(discriminator.state_dict(), CONFIG.airl.disc_save_to)
-    torch.save(ppo.state_dict(), CONFIG.airl.save_to)
+    torch.save(ppo.state_dict(), CONFIG.airl.ppo_save_to)
 
     # save model artifacts to wandb
     model_art = wandb.Artifact('airl_models', type='model')
     model_art.add_file(CONFIG.airl.disc_save_to)
-    model_art.add_file(CONFIG.airl.save_to)
+    model_art.add_file(CONFIG.airl.ppo_save_to)
     wandb.log_artifact(model_art)
 
     data_art = wandb.Artifact('airl_data', type='dataset')
@@ -106,5 +106,8 @@ def main():
 
 if __name__ == '__main__':
     # set_experiment_config(grid_size=15)
-    wandb.init(project='AIRL', dir='wandb', config=CONFIG.as_dict(), tags=['single_dataset'])
+    tags = ['single_dataset']
+    if CONFIG.airl.disc_load_from is not None or CONFIG.airl.ppo_load_from is not None:
+        tags.append('continued_training')
+    wandb.init(project='AIRL', dir='wandb', config=CONFIG.as_dict(), tags=tags)
     main()

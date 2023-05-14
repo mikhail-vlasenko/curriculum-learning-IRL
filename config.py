@@ -9,6 +9,7 @@ class EnvConfig:
     id: str = 'gym_examples/GridWorld-v0'
     grid_size: int = 5
     max_steps: int = 15
+    obs_dist: int = 2
     wrappers: List[str] = field(default_factory=lambda: ['FlattenObs'])
     vectorized: bool = True
     tensor_state: bool = False
@@ -40,7 +41,7 @@ class PPOConfig:
     epsilon: float = 0.2
     update_epochs: int = 5
     nonlinear: str = 'relu'  # tanh, relu
-    dimensions: List[int] = field(default_factory=lambda: [64, 64])
+    dimensions: List[int] = field(default_factory=lambda: [256, 256])
     simple_architecture: bool = True
 
 
@@ -61,7 +62,7 @@ class AIRLConfig:
     # ppo_load_from: str = None
     disc_load_from: str = 'saved_models/discriminator.pt'
     ppo_load_from: str = 'saved_models/airl_ppo.pt'
-    load_from_checkpoint: bool = True  # if True, overwrites disc_load_from and ppo_load_from
+    load_from_checkpoint: bool = False  # if True, overwrites disc_load_from and ppo_load_from
 
     disc_save_to: str = 'saved_models/discriminator.pt'
     ppo_save_to: str = 'saved_models/airl_ppo.pt'
@@ -91,7 +92,12 @@ class Config:
         return asdict(self)
 
 
-CONFIG = Config()
+CONFIG: Config = Config()
+
+PPO_CHECKPOINT = 'saved_models/checkpoints/ppo_latest.pt'
+DISC_CHECKPOINT = 'saved_models/checkpoints/discriminator_latest.pt'
+EXPERT_DATA_PREFIX = 'demonstrations/ppo_demos_size'
+EXPERT_DATA_SUFFIX = '.pk'
 
 if CONFIG.ppo_train.load_from is not None:
     CONFIG.continued_ppo_training = True
@@ -100,16 +106,12 @@ if CONFIG.airl.ppo_load_from is not None:
     CONFIG.continued_airl_training = True
 
 if CONFIG.airl.load_from_checkpoint:
-    CONFIG.airl.disc_load_from = 'saved_models/checkpoints/discriminator_latest.pt'
-    CONFIG.airl.ppo_load_from = 'saved_models/checkpoints/ppo_latest.pt'
+    CONFIG.airl.disc_load_from = DISC_CHECKPOINT
+    CONFIG.airl.ppo_load_from = PPO_CHECKPOINT
 
 CONFIG.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 if CONFIG.device == 'cpu':
     print('WARNING: CUDA not available. Using CPU.')
-
-
-EXPERT_DATA_PREFIX = 'demonstrations/ppo_demos_size'
-EXPERT_DATA_SUFFIX = '.pk'
 
 
 def set_experiment_config(grid_size: int = None, wrappers: List[str] = None):
@@ -119,6 +121,15 @@ def set_experiment_config(grid_size: int = None, wrappers: List[str] = None):
         CONFIG.airl.expert_data_path = EXPERT_DATA_PREFIX + str(grid_size) + EXPERT_DATA_SUFFIX
     if wrappers is not None:
         CONFIG.env.wrappers = wrappers
+
+
+def check_config(config: Config):
+    if config.airl.ppo_load_from is not None and config.airl.disc_load_from is None or \
+            config.airl.ppo_load_from is None and config.airl.disc_load_from is not None:
+        raise ValueError('Must specify both or neither of ppo_load_from and disc_load_from')
+
+
+check_config(CONFIG)
 
 
 if __name__ == '__main__':

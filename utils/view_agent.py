@@ -23,7 +23,7 @@ obs_shape = env.observation_space.shape
 ppo = PPO(state_shape=obs_shape[0], n_actions=n_actions).to(device)
 
 # ppo.load_state_dict(torch.load('../' + CONFIG.ppo_train.save_to))
-ppo.load_state_dict(torch.load('../' + CONFIG.airl.ppo_save_path))
+ppo.load_state_dict(torch.load('../' + CONFIG.airl.ppo_save_to))
 
 states, info = env.reset()
 states_tensor = torch.tensor(states).float().to(device)
