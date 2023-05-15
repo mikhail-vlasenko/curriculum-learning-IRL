@@ -1,3 +1,5 @@
+import random
+
 from gymnasium import spaces, Env
 import pygame
 import numpy as np
@@ -9,11 +11,11 @@ class GridWorldEnv(Env):
     """
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
 
-    def __init__(self, render_mode=None, grid_size=5, max_steps=None, obs_dist=2, checkers_negative_reward=False):
+    def __init__(self, render_mode=None, grid_size=5, max_steps=None, obs_dist=2, reward_configuration: str = "default"):
         self.size = grid_size  # The size of the square grid
         self.window_size = 512  # The size of the PyGame window
         self.obs_dist = obs_dist
-        self.checkers_negative_reward = checkers_negative_reward
+        self.reward_configuration = reward_configuration
 
         self.rewards = np.random.uniform(-1, 1, size=(self.size + 2 * self.obs_dist, self.size + 2 * self.obs_dist))
 
@@ -109,21 +111,7 @@ class GridWorldEnv(Env):
 
         # initialize random rewards
         self.rewards = np.random.uniform(-1, 1, size=(self.size + 2 * self.obs_dist, self.size + 2 * self.obs_dist))
-
-        if self.checkers_negative_reward:
-            # not really checkers, but similar
-            # -+-+-
-            # +++++
-            # -+-+-
-            # +++++
-            # -+-+-
-            self.rewards = np.abs(self.rewards)
-            # Create a boolean array where True indicates positions where both i and j are even
-            even_indices = np.ix_(np.arange(0, self.size + 2 * self.obs_dist) % 2 == 0,
-                                  np.arange(0, self.size + 2 * self.obs_dist) % 2 == 0)
-
-            self.rewards[even_indices] *= -1
-
+        self.configure_reward()
         self.rewards[self._agent_location[0], self._agent_location[1]] = 0
         self.rewards[self._target_location[0], self._target_location[1]] = 0
         self.rewards[self.walkable == 0] = 0
@@ -161,6 +149,38 @@ class GridWorldEnv(Env):
             return observation, reward, True, True, info
 
         return observation, reward, terminated, False, info
+
+    def configure_reward(self):
+        """
+        Applies a special reward configuration to the reward grid.
+        """
+        if self.reward_configuration == 'checkers':
+            # not really checkers, but similar
+            # -+-+-
+            # +++++
+            # -+-+-
+            # +++++
+            # -+-+-
+            self.rewards = np.abs(self.rewards)
+            # Create a boolean array where True indicates positions where both i and j are even
+            even_indices = np.ix_(np.arange(0, self.size + 2 * self.obs_dist) % 2 == 0,
+                                  np.arange(0, self.size + 2 * self.obs_dist) % 2 == 0)
+
+            self.rewards[even_indices] *= -1
+        elif self.reward_configuration == 'positive_strip':
+            # make all negative
+            self.rewards = -np.abs(self.rewards)
+            pos_idx = random.randint(self.obs_dist, self.size + self.obs_dist - 2)
+            vertical = random.choice([True, False])
+            # make positive rewards in a 2-wide strip
+            if vertical:
+                self.rewards[pos_idx:pos_idx+2, :] = -self.rewards[pos_idx:pos_idx+2, :]
+            else:
+                self.rewards[:, pos_idx:pos_idx+2] = -self.rewards[:, pos_idx:pos_idx+2]
+        elif self.reward_configuration == 'default':
+            pass
+        else:
+            raise ValueError(f"Unknown reward configuration {self.reward_configuration}")
 
     def get_observation_boundaries(self):
         return [

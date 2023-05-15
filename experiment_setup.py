@@ -27,13 +27,13 @@ def increasing_grid_size_curriculum(start_from=0):
 
 
 def checkers_negative_reward_curriculum():
-    checkers_negative_rewards = [True, False]
+    reward_configuration = ['checkers', 'default']
     wandb.init(project='AIRL', dir='wandb', config=CONFIG.as_dict(), tags=["curriculum", "checkers_negative_reward"])
     wandb.config['curriculum'] = 'checkers_negative_reward'
-    wandb.config['checkers_negative_rewards'] = checkers_negative_rewards
+    wandb.config['reward_configuration'] = reward_configuration
 
-    for i in range(len(checkers_negative_rewards)):
-        set_experiment_config(checkers_negative_reward=checkers_negative_rewards[i])
+    for i in range(len(reward_configuration)):
+        set_experiment_config(reward_configuration=reward_configuration[i])
         if i > 0:
             CONFIG.airl.ppo_load_from = CONFIG.airl.ppo_save_to
             CONFIG.airl.disc_load_from = CONFIG.airl.disc_save_to

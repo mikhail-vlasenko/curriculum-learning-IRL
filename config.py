@@ -14,7 +14,7 @@ class EnvConfig:
     vectorized: bool = True
     tensor_state: bool = False
     render: bool = False
-    checkers_negative_reward: bool = True
+    reward_configuration: str = 'positive_strip'  # default, checkers, positive_strip
 
 
 @dataclass
@@ -119,7 +119,7 @@ def set_experiment_config(
         grid_size: int = None,
         wrappers: List[str] = None,
         max_steps: int = None,
-        checkers_negative_reward: bool = None
+        reward_configuration: str = None
 ) -> None:
     print('Setting experiment config')
     if grid_size is not None:
@@ -129,8 +129,8 @@ def set_experiment_config(
         CONFIG.env.wrappers = wrappers
     if max_steps is not None:
         CONFIG.env.max_steps = max_steps
-    if checkers_negative_reward is not None:
-        CONFIG.env.checkers_negative_reward = checkers_negative_reward
+    if reward_configuration is not None:
+        CONFIG.env.reward_configuration = reward_configuration
 
 
 def check_config(config: Config):
