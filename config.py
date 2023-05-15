@@ -14,6 +14,7 @@ class EnvConfig:
     vectorized: bool = True
     tensor_state: bool = False
     render: bool = False
+    checkers_negative_reward: bool = True
 
 
 @dataclass
@@ -23,8 +24,8 @@ class PPOTrainConfig:
     """
     do_train: bool = True
     env_steps: int = 1000000
-    # load_from: str = 'saved_models/ppo_expert.pt'
-    load_from: str = None
+    load_from: str = 'saved_models/ppo_expert.pt'
+    # load_from: str = None
     save_to: str = 'saved_models/ppo_expert.pt'
 
 

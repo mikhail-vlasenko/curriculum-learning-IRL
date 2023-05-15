@@ -31,6 +31,7 @@ def _make_one():
         grid_size=CONFIG.env.grid_size,
         max_steps=CONFIG.env.max_steps,
         obs_dist=CONFIG.env.obs_dist,
+        checkers_negative_reward=CONFIG.env.checkers_negative_reward,
         render_mode=render
     )
     for wrapper in CONFIG.env.wrappers:

@@ -13,6 +13,7 @@ class GridWorldEnv(Env):
         self.size = grid_size  # The size of the square grid
         self.window_size = 512  # The size of the PyGame window
         self.obs_dist = obs_dist
+        self.checkers_negative_reward = checkers_negative_reward
 
         self.rewards = np.random.uniform(-1, 1, size=(self.size + 2 * self.obs_dist, self.size + 2 * self.obs_dist))
 
@@ -108,6 +109,21 @@ class GridWorldEnv(Env):
 
         # initialize random rewards
         self.rewards = np.random.uniform(-1, 1, size=(self.size + 2 * self.obs_dist, self.size + 2 * self.obs_dist))
+
+        if self.checkers_negative_reward:
+            # not really checkers, but similar
+            # -+-+-
+            # +++++
+            # -+-+-
+            # +++++
+            # -+-+-
+            self.rewards = np.abs(self.rewards)
+            # Create a boolean array where True indicates positions where both i and j are even
+            even_indices = np.ix_(np.arange(0, self.size + 2 * self.obs_dist) % 2 == 0,
+                                  np.arange(0, self.size + 2 * self.obs_dist) % 2 == 0)
+
+            self.rewards[even_indices] *= -1
+
         self.rewards[self._agent_location[0], self._agent_location[1]] = 0
         self.rewards[self._target_location[0], self._target_location[1]] = 0
         self.rewards[self.walkable == 0] = 0
@@ -133,12 +149,12 @@ class GridWorldEnv(Env):
         reward = self.get_tile_reward(reset=True)
         observation = self._get_obs()
         info = self._get_info()
+        self._time += 1
 
         if self.render_mode == "human":
             self._render_frame()
 
-        self._time += 1
-
+        # do not enforce deadline if goal already reached
         if not terminated and self._time >= self.max_steps:
             # also set truncated to true
             reward = -0.5 * self.max_steps
@@ -166,6 +182,7 @@ class GridWorldEnv(Env):
         if self.window is None and self.render_mode == "human":
             pygame.init()
             pygame.display.init()
+            self.draw_font = pygame.font.SysFont("monospace", 20)
             self.window = pygame.display.set_mode((self.window_size, self.window_size))
         if self.clock is None and self.render_mode == "human":
             self.clock = pygame.time.Clock()
@@ -226,9 +243,13 @@ class GridWorldEnv(Env):
                 width=3,
             )
 
+        # display remaining steps
+        label = self.draw_font.render("Steps left: {}".format(self.max_steps - self._time), True, (0, 0, 0))
+
         if self.render_mode == "human":
             # The following line copies our drawings from `canvas` to the visible window
             self.window.blit(canvas, canvas.get_rect())
+            self.window.blit(label, (10, 10))
             pygame.event.pump()
             pygame.display.update()
 
