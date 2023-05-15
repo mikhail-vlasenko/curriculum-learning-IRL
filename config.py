@@ -115,13 +115,22 @@ if CONFIG.device == 'cpu':
     print('WARNING: CUDA not available. Using CPU.')
 
 
-def set_experiment_config(grid_size: int = None, wrappers: List[str] = None):
+def set_experiment_config(
+        grid_size: int = None,
+        wrappers: List[str] = None,
+        max_steps: int = None,
+        checkers_negative_reward: bool = None
+) -> None:
     print('Setting experiment config')
     if grid_size is not None:
         CONFIG.env.grid_size = grid_size
         CONFIG.airl.expert_data_path = EXPERT_DATA_PREFIX + str(grid_size) + EXPERT_DATA_SUFFIX
     if wrappers is not None:
         CONFIG.env.wrappers = wrappers
+    if max_steps is not None:
+        CONFIG.env.max_steps = max_steps
+    if checkers_negative_reward is not None:
+        CONFIG.env.checkers_negative_reward = checkers_negative_reward
 
 
 def check_config(config: Config):

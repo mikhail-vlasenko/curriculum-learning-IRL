@@ -9,41 +9,46 @@ import pickle
 from envs.env_factory import make_env
 
 
-CONFIG.env.vectorized = False
-env = make_env()
+def make_demos():
+    CONFIG.env.vectorized = False
+    env = make_env()
 
-n_actions = env.action_space.n
-obs_shape = env.observation_space.shape
+    n_actions = env.action_space.n
+    obs_shape = env.observation_space.shape
 
-# Load Pretrained PPO
-ppo = PPO(state_shape=obs_shape[0], n_actions=n_actions).to(device)
-ppo.load_state_dict(torch.load(CONFIG.ppo_train.load_from))
+    # Load Pretrained PPO
+    ppo = PPO(state_shape=obs_shape[0], n_actions=n_actions).to(device)
+    ppo.load_state_dict(torch.load(CONFIG.ppo_train.load_from))
 
-states, info = env.reset()
-states_tensor = torch.tensor(states).float().to(device)
-dataset = []
-episode = {'states': [], 'actions': []}
-episode_cnt = 0
-
-for _ in tqdm(range(CONFIG.demos.n_steps)):
-    action, log_probs = ppo.act(states_tensor)
-    action = action.item()
-    next_states, reward, terminated, truncated, _ = env.step(action)
-    done = terminated or truncated
-    episode['states'].append(states)
-    episode['actions'].append(action)
-
-    if done:
-        next_states, info = env.reset()
-        dataset.append(episode)
-        episode = {'states': [], 'actions': []}
-
-    # Prepare state input for next time step
-    states = next_states.copy()
+    states, info = env.reset()
     states_tensor = torch.tensor(states).float().to(device)
+    dataset = []
+    episode = {'states': [], 'actions': []}
 
-print('Sample:')
-for _ in range(2):
-    print(dataset[random.randint(0, len(dataset) - 1)])
-pickle.dump(dataset, open(f'demonstrations/ppo_demos_size{CONFIG.env.grid_size}.pk', 'wb'))
-env.close()
+    for _ in tqdm(range(CONFIG.demos.n_steps)):
+        action, log_probs = ppo.act(states_tensor)
+        action = action.item()
+        next_states, reward, terminated, truncated, _ = env.step(action)
+        done = terminated or truncated
+        episode['states'].append(states)
+        episode['actions'].append(action)
+
+        if done:
+            next_states, info = env.reset()
+            dataset.append(episode)
+            episode = {'states': [], 'actions': []}
+
+        # Prepare state input for next time step
+        states = next_states.copy()
+        states_tensor = torch.tensor(states).float().to(device)
+    env.close()
+    return dataset
+
+
+if __name__ == '__main__':
+    dataset = make_demos()
+    print(f'Number of episodes: {len(dataset)}')
+    print('Sample:')
+    for _ in range(2):
+        print(dataset[random.randint(0, len(dataset) - 1)])
+    pickle.dump(dataset, open(f'demonstrations/ppo_demos_size{CONFIG.env.grid_size}.pk', 'wb'))
