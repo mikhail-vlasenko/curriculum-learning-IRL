@@ -10,6 +10,7 @@ from envs.env_factory import make_env
 
 
 def make_demos():
+    reward_sum = 0
     CONFIG.env.vectorized = False
     env = make_env()
 
@@ -30,6 +31,7 @@ def make_demos():
         action = action.item()
         next_states, reward, terminated, truncated, _ = env.step(action)
         done = terminated or truncated
+        reward_sum += reward
         episode['states'].append(states)
         episode['actions'].append(action)
 
@@ -42,13 +44,14 @@ def make_demos():
         states = next_states.copy()
         states_tensor = torch.tensor(states).float().to(device)
     env.close()
-    return dataset
+    return dataset, reward_sum
 
 
 if __name__ == '__main__':
-    dataset = make_demos()
+    dataset, reward_sum = make_demos()
     print(f'Number of episodes: {len(dataset)}')
     print('Sample:')
     for _ in range(2):
         print(dataset[random.randint(0, len(dataset) - 1)])
+    print(f'average reward: {reward_sum / len(dataset)}')
     pickle.dump(dataset, open(f'demonstrations/ppo_demos_size{CONFIG.env.grid_size}.pk', 'wb'))

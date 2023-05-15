@@ -167,7 +167,7 @@ class GridWorldEnv(Env):
                                   np.arange(0, self.size + 2 * self.obs_dist) % 2 == 0)
 
             self.rewards[even_indices] *= -1
-        elif self.reward_configuration == 'positive_strip':
+        elif self.reward_configuration == 'positive_stripe':
             # make all negative
             self.rewards = -np.abs(self.rewards)
             pos_idx = random.randint(self.obs_dist, self.size + self.obs_dist - 2)

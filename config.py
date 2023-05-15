@@ -14,7 +14,7 @@ class EnvConfig:
     vectorized: bool = True
     tensor_state: bool = False
     render: bool = False
-    reward_configuration: str = 'positive_strip'  # default, checkers, positive_strip
+    reward_configuration: str = 'positive_stripe'  # default, checkers, positive_stripe
 
 
 @dataclass

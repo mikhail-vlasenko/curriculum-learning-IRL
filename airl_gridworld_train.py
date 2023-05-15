@@ -10,7 +10,7 @@ import torch
 import pickle
 
 
-def main():
+def main(logging_start_step=0):
     CONFIG.ppo.entropy_reg = 0.0
 
     expert_trajectories = pickle.load(open(CONFIG.airl.expert_data_path, 'rb'))
@@ -57,7 +57,7 @@ def main():
         if train_ready:
             wandb.log({'Reward': dataset.log_objectives().mean(),
                        'Returns': dataset.log_returns().mean(),
-                       'Lengths': dataset.log_lengths().mean()}, step=t * CONFIG.ppo.n_workers)
+                       'Lengths': dataset.log_lengths().mean()}, step=t * CONFIG.ppo.n_workers + logging_start_step)
 
             # Update Models
             update_policy(
@@ -77,7 +77,7 @@ def main():
 
             wandb.log({'Discriminator Loss': d_loss,
                        'Fake Accuracy': fake_acc,
-                       'Real Accuracy': real_acc}, step=t * CONFIG.ppo.n_workers)
+                       'Real Accuracy': real_acc}, step=t * CONFIG.ppo.n_workers + logging_start_step)
 
             torch.save(discriminator.state_dict(), DISC_CHECKPOINT)
             torch.save(ppo.state_dict(), PPO_CHECKPOINT)
