@@ -13,6 +13,7 @@ import pickle
 def main(logging_start_step=0):
     CONFIG.ppo.entropy_reg = 0.0
 
+    print(f'Using data from {CONFIG.airl.expert_data_path}')
     expert_trajectories = pickle.load(open(CONFIG.airl.expert_data_path, 'rb'))
 
     # Create Environment
@@ -105,7 +106,9 @@ def main(logging_start_step=0):
 
 
 if __name__ == '__main__':
-    # set_experiment_config(grid_size=15)
+    set_experiment_config(grid_size=15, max_steps=-1)
+    if CONFIG.airl.expert_data_path is None:
+        CONFIG.airl.expert_data_path = get_demo_name()
     tags = ['single_dataset']
     if CONFIG.airl.disc_load_from is not None or CONFIG.airl.ppo_load_from is not None:
         tags.append('continued_training')

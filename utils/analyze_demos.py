@@ -10,7 +10,7 @@ from gym_examples.wrappers import RelativePosition
 import gymnasium as gym
 
 
-expert_trajectories = pickle.load(open('../demonstrations/ppo_demos_size5.pk', 'rb'))
+expert_trajectories = pickle.load(open('../' + get_demo_name(), 'rb'))
 print(f'Total number of trajectories: {len(expert_trajectories)}')
 for _ in range(10):
     i = random.randint(0, len(expert_trajectories)-1)
@@ -18,7 +18,7 @@ for _ in range(10):
 
 print(f'Averaged length of trajectories: {np.mean([len(traj["actions"]) for traj in expert_trajectories])}')
 
-n = 15
+n = CONFIG.env.grid_size
 s = 0
 cnt = 0
 for i in range(n):

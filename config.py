@@ -10,7 +10,7 @@ class EnvConfig:
     grid_size: int = 5
     max_steps: int = 15
     obs_dist: int = 2
-    wrappers: List[str] = field(default_factory=lambda: ['FlattenObs'])
+    wrappers: List[str] = field(default_factory=lambda: ['OnlyEndReward', 'RelativePosition'])
     vectorized: bool = True
     tensor_state: bool = False
     render: bool = False
@@ -22,11 +22,10 @@ class PPOTrainConfig:
     """
     Config for training the expert PPO
     """
-    do_train: bool = True
-    env_steps: int = 1000000
-    load_from: str = 'saved_models/ppo_expert.pt'
+    env_steps: int = 200000
+    load_from: str = 'saved_models/end_reward_ppo_expert.pt'
     # load_from: str = None
-    save_to: str = 'saved_models/ppo_expert.pt'
+    save_to: str = 'saved_models/end_reward_ppo_expert15.pt'
 
 
 @dataclass
@@ -38,31 +37,29 @@ class PPOConfig:
     n_workers: int = 64
     lr: float = 1e-3
     entropy_reg: float = 0.05
-    gamma: float = 0.9
-    epsilon: float = 0.2
+    gamma: float = 0.8
+    epsilon: float = 0.1
     update_epochs: int = 5
     nonlinear: str = 'relu'  # tanh, relu
-    dimensions: List[int] = field(default_factory=lambda: [256, 256])
+    dimensions: List[int] = field(default_factory=lambda: [32, 32])
     simple_architecture: bool = True
 
 
 @dataclass
 class DemosConfig:
     n_steps: int = 10000
+    load_from: str = 'saved_models/end_reward_ppo_expert15.pt'
 
 
 @dataclass
 class AIRLConfig:
-    """
-    Config for training with AIRL
-    """
-    expert_data_path: str = 'demonstrations/ppo_demos_size5.pk'
     env_steps: int = 500000
+    expert_data_path: str = None
 
-    # disc_load_from: str = None
-    # ppo_load_from: str = None
-    disc_load_from: str = 'saved_models/discriminator.pt'
-    ppo_load_from: str = 'saved_models/airl_ppo.pt'
+    disc_load_from: str = None
+    ppo_load_from: str = None
+    # disc_load_from: str = 'saved_models/discriminator.pt'
+    # ppo_load_from: str = 'saved_models/airl_ppo.pt'
     load_from_checkpoint: bool = False  # if True, overwrites disc_load_from and ppo_load_from
 
     disc_save_to: str = 'saved_models/discriminator.pt'
@@ -115,6 +112,13 @@ if CONFIG.device == 'cpu':
     print('WARNING: CUDA not available. Using CPU.')
 
 
+def get_demo_name():
+    return f'demonstrations/ppo_demos_' \
+           f'size-{CONFIG.env.grid_size}_' \
+           f'end-reward-{"OnlyEndReward" in CONFIG.env.wrappers}_' \
+           f'relative-pos-only-{"RelativePosition" in CONFIG.env.wrappers}.pk'
+
+
 def set_experiment_config(
         grid_size: int = None,
         wrappers: List[str] = None,
@@ -124,7 +128,7 @@ def set_experiment_config(
     print('Setting experiment config')
     if grid_size is not None:
         CONFIG.env.grid_size = grid_size
-        CONFIG.airl.expert_data_path = EXPERT_DATA_PREFIX + str(grid_size) + EXPERT_DATA_SUFFIX
+        CONFIG.airl.expert_data_path = get_demo_name()
     if wrappers is not None:
         CONFIG.env.wrappers = wrappers
     if max_steps is not None:

@@ -19,7 +19,7 @@ class GridWorldEnv(Env):
 
         self.rewards = np.random.uniform(-1, 1, size=(self.size + 2 * self.obs_dist, self.size + 2 * self.obs_dist))
 
-        if max_steps is None:
+        if max_steps is None or max_steps < 0:
             self.max_steps = 2 * (self.size ** 2)
         else:
             self.max_steps = max_steps

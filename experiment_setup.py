@@ -6,7 +6,8 @@ from config import CONFIG, set_experiment_config
 
 def increasing_grid_size_curriculum(start_from=0):
     grid_sizes = [5, 15]
-    max_steps = [15, 45]
+    # max_steps = [15, 45]
+    max_steps = [-1, -1]
     # learning rate schedule might be nice
 
     wandb.init(project='AIRL', dir='wandb', config=CONFIG.as_dict(),  tags=["curriculum", "increasing_grid_size"])
@@ -59,4 +60,4 @@ def positive_stripe_reward_curriculum():
 
 
 if __name__ == '__main__':
-    positive_stripe_reward_curriculum()
+    increasing_grid_size_curriculum()

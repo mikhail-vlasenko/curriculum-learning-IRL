@@ -2,7 +2,7 @@ import random
 
 from tqdm import tqdm
 
-from config import CONFIG
+from config import CONFIG, get_demo_name
 from rl_algos.ppo_from_airl import PPO, device
 import torch
 import pickle
@@ -19,7 +19,7 @@ def make_demos():
 
     # Load Pretrained PPO
     ppo = PPO(state_shape=obs_shape[0], n_actions=n_actions).to(device)
-    ppo.load_state_dict(torch.load(CONFIG.ppo_train.load_from))
+    ppo.load_state_dict(torch.load(CONFIG.demos.load_from))
 
     states, info = env.reset()
     states_tensor = torch.tensor(states).float().to(device)
@@ -54,4 +54,4 @@ if __name__ == '__main__':
     for _ in range(2):
         print(dataset[random.randint(0, len(dataset) - 1)])
     print(f'average reward: {reward_sum / len(dataset)}')
-    pickle.dump(dataset, open(f'demonstrations/ppo_demos_size{CONFIG.env.grid_size}.pk', 'wb'))
+    pickle.dump(dataset, open(get_demo_name(), 'wb'))
