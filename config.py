@@ -10,6 +10,7 @@ class EnvConfig:
     grid_size: int = 5
     max_steps: int = 15
     obs_dist: int = 2
+    # 'OnlyEndReward', 'RelativePosition', 'FlattenObs'
     wrappers: List[str] = field(default_factory=lambda: ['OnlyEndReward', 'RelativePosition'])
     vectorized: bool = True
     tensor_state: bool = False
@@ -53,7 +54,7 @@ class DemosConfig:
 
 @dataclass
 class AIRLConfig:
-    env_steps: int = 500000
+    env_steps: int = 500000  # total steps from training, even with curriculum
     expert_data_path: str = None
 
     disc_load_from: str = None

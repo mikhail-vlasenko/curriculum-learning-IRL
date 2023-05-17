@@ -61,5 +61,9 @@ if __name__ == '__main__':
     tags = []
     if CONFIG.ppo_train.load_from is not None:
         tags.append('continued_training')
+    if 'OnlyEndReward' in CONFIG.env.wrappers:
+        tags.append('only_end_reward')
+    if 'FlattenObs' in CONFIG.env.wrappers:
+        tags.append('flatten_obs')
     wandb.init(project='PPO', config=CONFIG.as_dict(), tags=tags)
     main()
