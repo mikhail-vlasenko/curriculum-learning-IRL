@@ -30,7 +30,10 @@ def main(logging_start_step=0):
     ppo = PPO(state_shape=obs_shape[0], n_actions=n_actions).to(device)
     discriminator = DiscriminatorMLP(state_shape=obs_shape[0]).to(device)
     optimizer = torch.optim.Adam(ppo.parameters(), lr=CONFIG.ppo.lr)
-    optimizer_discriminator = torch.optim.Adam(discriminator.parameters(), lr=CONFIG.discriminator.lr)
+    if CONFIG.airl.optimizer_disc == 'adam':
+        optimizer_discriminator = torch.optim.Adam(discriminator.parameters(), lr=CONFIG.discriminator.lr)
+    elif CONFIG.airl.optimizer_disc == 'sgd':
+        optimizer_discriminator = torch.optim.SGD(discriminator.parameters(), lr=CONFIG.discriminator.lr)
     dataset = TrajectoryDataset(batch_size=CONFIG.ppo.batch_size, n_workers=CONFIG.ppo.n_workers)
 
     if CONFIG.airl.disc_load_from is not None:
@@ -106,7 +109,7 @@ def main(logging_start_step=0):
 
 
 if __name__ == '__main__':
-    set_experiment_config(grid_size=15, max_steps=-1)
+    # set_experiment_config(grid_size=15, max_steps=-1)
     if CONFIG.airl.expert_data_path is None:
         CONFIG.airl.expert_data_path = get_demo_name()
     tags = ['single_dataset']

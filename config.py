@@ -11,11 +11,11 @@ class EnvConfig:
     max_steps: int = 15
     obs_dist: int = 2
     # 'OnlyEndReward', 'RelativePosition', 'FlattenObs'
-    wrappers: List[str] = field(default_factory=lambda: ['OnlyEndReward', 'RelativePosition'])
+    wrappers: List[str] = field(default_factory=lambda: ['FlattenObs'])
     vectorized: bool = True
     tensor_state: bool = False
     render: bool = False
-    reward_configuration: str = 'positive_stripe'  # default, checkers, positive_stripe
+    reward_configuration: str = 'default'  # default, checkers, positive_stripe
 
 
 @dataclass
@@ -24,9 +24,9 @@ class PPOTrainConfig:
     Config for training the expert PPO
     """
     env_steps: int = 200000
-    load_from: str = 'saved_models/end_reward_ppo_expert.pt'
+    load_from: str = 'saved_models/rew_per_tile_ppo_expert.pt'
     # load_from: str = None
-    save_to: str = 'saved_models/end_reward_ppo_expert15.pt'
+    save_to: str = 'saved_models/rew_per_tile_ppo_expert.pt'
 
 
 @dataclass
@@ -42,20 +42,21 @@ class PPOConfig:
     epsilon: float = 0.1
     update_epochs: int = 5
     nonlinear: str = 'relu'  # tanh, relu
-    dimensions: List[int] = field(default_factory=lambda: [32, 32])
+    dimensions: List[int] = field(default_factory=lambda: [128, 128])
     simple_architecture: bool = True
 
 
 @dataclass
 class DemosConfig:
-    n_steps: int = 10000
-    load_from: str = 'saved_models/end_reward_ppo_expert15.pt'
+    n_steps: int = 50000
+    load_from: str = 'saved_models/rew_per_tile_ppo_expert.pt'
 
 
 @dataclass
 class AIRLConfig:
-    env_steps: int = 500000  # total steps from training, even with curriculum
+    env_steps: int = 1000000  # total steps from training, even with curriculum
     expert_data_path: str = None
+    optimizer_disc: str = 'adam'  # adam, sgd (with no momentum)
 
     disc_load_from: str = None
     ppo_load_from: str = None
@@ -72,7 +73,7 @@ class DiscriminatorConfig:
     batch_size: int = 1024
     lr: float = 5e-4
     simple_architecture: bool = True
-    dimensions: List[int] = field(default_factory=lambda: [32, 32])
+    dimensions: List[int] = field(default_factory=lambda: [128, 128])
 
 
 @dataclass
@@ -117,7 +118,7 @@ def get_demo_name():
     return f'demonstrations/ppo_demos_' \
            f'size-{CONFIG.env.grid_size}_' \
            f'end-reward-{"OnlyEndReward" in CONFIG.env.wrappers}_' \
-           f'relative-pos-only-{"RelativePosition" in CONFIG.env.wrappers}.pk'
+           f'reward-conf-{CONFIG.env.reward_configuration}.pk'
 
 
 def set_experiment_config(
@@ -129,13 +130,13 @@ def set_experiment_config(
     print('Setting experiment config')
     if grid_size is not None:
         CONFIG.env.grid_size = grid_size
-        CONFIG.airl.expert_data_path = get_demo_name()
     if wrappers is not None:
         CONFIG.env.wrappers = wrappers
     if max_steps is not None:
         CONFIG.env.max_steps = max_steps
     if reward_configuration is not None:
         CONFIG.env.reward_configuration = reward_configuration
+    CONFIG.airl.expert_data_path = get_demo_name()
 
 
 def check_config(config: Config):

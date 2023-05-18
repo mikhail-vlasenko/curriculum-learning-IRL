@@ -53,7 +53,7 @@ def positive_stripe_reward_curriculum():
     CONFIG.airl.env_steps = CONFIG.airl.env_steps // len(reward_configuration)
 
     wandb.init(project='AIRL', dir='wandb', config=CONFIG.as_dict(), tags=["curriculum", "positive_stripe_reward"])
-    wandb.config['curriculum'] = 'two_stripe_reward'
+    wandb.config['curriculum'] = 'positive_stripe_reward'
     wandb.config['reward_configuration'] = reward_configuration
     wandb.config['total_steps'] = CONFIG.airl.env_steps * (len(reward_configuration))
 
@@ -68,4 +68,4 @@ def positive_stripe_reward_curriculum():
 
 
 if __name__ == '__main__':
-    increasing_grid_size_curriculum()
+    positive_stripe_reward_curriculum()
