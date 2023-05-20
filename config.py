@@ -16,6 +16,7 @@ class EnvConfig:
     tensor_state: bool = False
     render: bool = False
     reward_configuration: str = 'default'  # default, checkers, positive_stripe
+    spawn_distance: int = -1  # -1 means random
 
 
 @dataclass
@@ -23,10 +24,10 @@ class PPOTrainConfig:
     """
     Config for training the expert PPO
     """
-    env_steps: int = 200000
-    load_from: str = 'saved_models/rew_per_tile_ppo_expert.pt'
+    env_steps: int = 500000
+    load_from: str = 'saved_models/rew_per_tile_ppo_expert5.pt'
     # load_from: str = None
-    save_to: str = 'saved_models/rew_per_tile_ppo_expert.pt'
+    save_to: str = f'saved_models/rew_per_tile_ppo_expert{EnvConfig.grid_size}.pt'
 
 
 @dataclass
@@ -38,7 +39,7 @@ class PPOConfig:
     n_workers: int = 64
     lr: float = 1e-3
     entropy_reg: float = 0.05
-    gamma: float = 0.8
+    gamma: float = 0.99
     epsilon: float = 0.1
     update_epochs: int = 5
     nonlinear: str = 'relu'  # tanh, relu
@@ -49,7 +50,7 @@ class PPOConfig:
 @dataclass
 class DemosConfig:
     n_steps: int = 50000
-    load_from: str = 'saved_models/rew_per_tile_ppo_expert.pt'
+    load_from: str = 'saved_models/rew_per_tile_ppo_expert5.pt'
 
 
 @dataclass
@@ -115,10 +116,11 @@ if CONFIG.device == 'cpu':
 
 
 def get_demo_name():
-    return f'demonstrations/ppo_demos_' \
-           f'size-{CONFIG.env.grid_size}_' \
-           f'end-reward-{"OnlyEndReward" in CONFIG.env.wrappers}_' \
+    name = f'demonstrations/ppo_demos_' + \
+           f'size-{CONFIG.env.grid_size}_' + \
+           (f'end-reward_' if "OnlyEndReward" in CONFIG.env.wrappers else 'tile-reward_') + \
            f'reward-conf-{CONFIG.env.reward_configuration}.pk'
+    return name
 
 
 def set_experiment_config(
@@ -137,12 +139,17 @@ def set_experiment_config(
     if reward_configuration is not None:
         CONFIG.env.reward_configuration = reward_configuration
     CONFIG.airl.expert_data_path = get_demo_name()
+    check_config(CONFIG)
 
 
 def check_config(config: Config):
     if config.airl.ppo_load_from is not None and config.airl.disc_load_from is None or \
             config.airl.ppo_load_from is None and config.airl.disc_load_from is not None:
         raise ValueError('Must specify both or neither of ppo_load_from and disc_load_from')
+    if config.env.max_steps != 3 * config.env.grid_size and config.env.max_steps != -1:
+        print('WARNING: max_steps is not 3 * grid_size. This may cause issues with the reward function or demos.')
+    if 'FlattenObs' in config.env.wrappers and config.ppo.gamma < 0.9:
+        print('WARNING: gamma is less than 0.9 for a complex environment.')
 
 
 check_config(CONFIG)

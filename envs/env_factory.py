@@ -32,6 +32,7 @@ def _make_one():
         max_steps=CONFIG.env.max_steps,
         obs_dist=CONFIG.env.obs_dist,
         reward_configuration=CONFIG.env.reward_configuration,
+        spawn_distance=CONFIG.env.spawn_distance,
         render_mode=render,
     )
     for wrapper in CONFIG.env.wrappers:

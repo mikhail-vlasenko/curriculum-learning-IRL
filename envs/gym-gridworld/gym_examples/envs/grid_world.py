@@ -11,11 +11,20 @@ class GridWorldEnv(Env):
     """
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
 
-    def __init__(self, render_mode=None, grid_size=5, max_steps=None, obs_dist=2, reward_configuration: str = "default"):
+    def __init__(
+            self,
+            render_mode=None,
+            grid_size=5,
+            max_steps=None,
+            obs_dist=2,
+            reward_configuration: str = "default",
+            spawn_distance: int = -1,
+    ):
         self.size = grid_size  # The size of the square grid
         self.window_size = 512  # The size of the PyGame window
         self.obs_dist = obs_dist
         self.reward_configuration = reward_configuration
+        self.spawn_distance = spawn_distance
 
         self.rewards = np.random.uniform(-1, 1, size=(self.size + 2 * self.obs_dist, self.size + 2 * self.obs_dist))
 
@@ -99,15 +108,7 @@ class GridWorldEnv(Env):
 
         self._time = 0
 
-        # Choose the agent's location uniformly at random
-        self._agent_location = self.np_random.integers(self.obs_dist, self.size + self.obs_dist, size=2, dtype=int)
-
-        # We will sample the target's location randomly until it does not coincide with the agent's location
-        self._target_location = self._agent_location
-        while np.array_equal(self._target_location, self._agent_location):
-            self._target_location = self.np_random.integers(
-                self.obs_dist, self.size + self.obs_dist, size=2, dtype=int
-            )
+        self.spawn_actor_and_target()
 
         # initialize random rewards
         self.rewards = np.random.uniform(-1, 1, size=(self.size + 2 * self.obs_dist, self.size + 2 * self.obs_dist))
@@ -181,6 +182,27 @@ class GridWorldEnv(Env):
             pass
         else:
             raise ValueError(f"Unknown reward configuration {self.reward_configuration}")
+
+    def spawn_actor_and_target(self):
+        # Choose the agent's location uniformly at random
+        self._agent_location = self.np_random.integers(self.obs_dist, self.size + self.obs_dist, size=2, dtype=int)
+
+        self._target_location = self._agent_location
+        while np.array_equal(self._target_location, self._agent_location):
+            if self.spawn_distance == -1:
+                self._target_location = self.np_random.integers(
+                    self.obs_dist, self.size + self.obs_dist, size=2, dtype=int
+                )
+            else:
+                x = self.np_random.integers(
+                    max(self.obs_dist, self._agent_location[0] - self.spawn_distance),
+                    min(self.size + self.obs_dist, self._agent_location[0] + self.spawn_distance), size=1, dtype=int
+                )
+                y = self.np_random.integers(
+                    max(self.obs_dist, self._agent_location[1] - self.spawn_distance),
+                    min(self.size + self.obs_dist, self._agent_location[1] + self.spawn_distance), size=1, dtype=int
+                )
+                self._target_location = np.array([x[0], y[0]])
 
     def get_observation_boundaries(self):
         return [

@@ -5,9 +5,9 @@ from config import CONFIG, set_experiment_config
 
 
 def increasing_grid_size_curriculum():
-    grid_sizes = [5, 15]
+    grid_sizes = [5, 10]
     # max_steps = [15, 45]
-    max_steps = [-1, -1]
+    max_steps = [15, 30]
     # learning rate schedule might be nice
 
     # convert from total steps to steps per curriculum item
@@ -68,4 +68,5 @@ def positive_stripe_reward_curriculum():
 
 
 if __name__ == '__main__':
-    positive_stripe_reward_curriculum()
+    increasing_grid_size_curriculum()
+    # positive_stripe_reward_curriculum()
