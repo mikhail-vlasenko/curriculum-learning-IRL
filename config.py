@@ -7,8 +7,8 @@ import torch
 @dataclass
 class EnvConfig:
     id: str = 'gym_examples/GridWorld-v0'
-    grid_size: int = 5
-    max_steps: int = 15
+    grid_size: int = 10
+    max_steps: int = 30
     obs_dist: int = 2
     # 'OnlyEndReward', 'RelativePosition', 'FlattenObs'
     wrappers: List[str] = field(default_factory=lambda: ['FlattenObs'])
@@ -25,7 +25,7 @@ class PPOTrainConfig:
     Config for training the expert PPO
     """
     env_steps: int = 500000
-    load_from: str = 'saved_models/rew_per_tile_ppo_expert5.pt'
+    load_from: str = 'saved_models/rew_per_tile_ppo_expert10.pt'
     # load_from: str = None
     save_to: str = f'saved_models/rew_per_tile_ppo_expert{EnvConfig.grid_size}.pt'
 
@@ -50,7 +50,7 @@ class PPOConfig:
 @dataclass
 class DemosConfig:
     n_steps: int = 50000
-    load_from: str = 'saved_models/rew_per_tile_ppo_expert5.pt'
+    load_from: str = f'saved_models/rew_per_tile_ppo_expert{EnvConfig.grid_size}.pt'
 
 
 @dataclass
@@ -100,19 +100,21 @@ DISC_CHECKPOINT = 'saved_models/checkpoints/discriminator_latest.pt'
 EXPERT_DATA_PREFIX = 'demonstrations/ppo_demos_size'
 EXPERT_DATA_SUFFIX = '.pk'
 
-if CONFIG.ppo_train.load_from is not None:
-    CONFIG.continued_ppo_training = True
 
-if CONFIG.airl.ppo_load_from is not None:
-    CONFIG.continued_airl_training = True
-
-if CONFIG.airl.load_from_checkpoint:
-    CONFIG.airl.disc_load_from = DISC_CHECKPOINT
-    CONFIG.airl.ppo_load_from = PPO_CHECKPOINT
-
-CONFIG.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-if CONFIG.device == 'cpu':
-    print('WARNING: CUDA not available. Using CPU.')
+def augment_config():
+    if CONFIG.ppo_train.load_from is not None:
+        CONFIG.continued_ppo_training = True
+    
+    if CONFIG.airl.ppo_load_from is not None:
+        CONFIG.continued_airl_training = True
+    
+    if CONFIG.airl.load_from_checkpoint:
+        CONFIG.airl.disc_load_from = DISC_CHECKPOINT
+        CONFIG.airl.ppo_load_from = PPO_CHECKPOINT
+    
+    CONFIG.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    if CONFIG.device == 'cpu':
+        print('WARNING: CUDA not available. Using CPU.')
 
 
 def get_demo_name():
@@ -127,7 +129,8 @@ def set_experiment_config(
         grid_size: int = None,
         wrappers: List[str] = None,
         max_steps: int = None,
-        reward_configuration: str = None
+        reward_configuration: str = None,
+        ppo_lr: float = None,
 ) -> None:
     print('Setting experiment config')
     if grid_size is not None:
@@ -138,21 +141,24 @@ def set_experiment_config(
         CONFIG.env.max_steps = max_steps
     if reward_configuration is not None:
         CONFIG.env.reward_configuration = reward_configuration
+    if ppo_lr is not None:
+        CONFIG.ppo.lr = ppo_lr
     CONFIG.airl.expert_data_path = get_demo_name()
-    check_config(CONFIG)
+    check_config()
 
 
-def check_config(config: Config):
-    if config.airl.ppo_load_from is not None and config.airl.disc_load_from is None or \
-            config.airl.ppo_load_from is None and config.airl.disc_load_from is not None:
+def check_config():
+    if CONFIG.airl.ppo_load_from is not None and CONFIG.airl.disc_load_from is None or \
+            CONFIG.airl.ppo_load_from is None and CONFIG.airl.disc_load_from is not None:
         raise ValueError('Must specify both or neither of ppo_load_from and disc_load_from')
-    if config.env.max_steps != 3 * config.env.grid_size and config.env.max_steps != -1:
+    if CONFIG.env.max_steps != 3 * CONFIG.env.grid_size and CONFIG.env.max_steps != -1:
         print('WARNING: max_steps is not 3 * grid_size. This may cause issues with the reward function or demos.')
-    if 'FlattenObs' in config.env.wrappers and config.ppo.gamma < 0.9:
+    if 'FlattenObs' in CONFIG.env.wrappers and CONFIG.ppo.gamma < 0.9:
         print('WARNING: gamma is less than 0.9 for a complex environment.')
 
 
-check_config(CONFIG)
+augment_config()
+check_config()
 
 
 if __name__ == '__main__':

@@ -5,45 +5,30 @@ from config import CONFIG, set_experiment_config
 
 
 def increasing_grid_size_curriculum():
+    # todo: dynamically trigger next env when trained on current env
+    share_of_env_steps = [0.3, 0.7]
     grid_sizes = [5, 10]
     # max_steps = [15, 45]
     max_steps = [15, 30]
-    # learning rate schedule might be nice
+    lrs = [CONFIG.ppo.lr, CONFIG.ppo.lr / 2]
 
-    # convert from total steps to steps per curriculum item
-    CONFIG.airl.env_steps = CONFIG.airl.env_steps // len(grid_sizes)
+    last_trained_step = 0
 
     wandb.init(project='AIRL', dir='wandb', config=CONFIG.as_dict(),  tags=["curriculum", "increasing_grid_size"])
     wandb.config['curriculum'] = 'increasing_grid_size'
     wandb.config['grid_sizes'] = grid_sizes
     wandb.config['max_steps'] = max_steps
-    wandb.config['total_steps'] = CONFIG.airl.env_steps * (len(grid_sizes))
+    wandb.config['total_steps'] = CONFIG.airl.env_steps
 
     for i in range(len(grid_sizes)):
-        set_experiment_config(grid_size=grid_sizes[i], max_steps=max_steps[i])
+        set_experiment_config(grid_size=grid_sizes[i], max_steps=max_steps[i], ppo_lr=lrs[i])
+        CONFIG.airl.env_steps = int(share_of_env_steps[i] * wandb.config['total_steps'])
         if i > 0:
             CONFIG.airl.ppo_load_from = CONFIG.airl.ppo_save_to
             CONFIG.airl.disc_load_from = CONFIG.airl.disc_save_to
-        main(logging_start_step=i*CONFIG.airl.env_steps)
+        last_trained_step = main(logging_start_step=last_trained_step)
 
     wandb.finish()
-
-
-# def checkers_negative_reward_curriculum():
-#     reward_configuration = ['checkers', 'default']
-#     wandb.init(project='AIRL', dir='wandb', config=CONFIG.as_dict(), tags=["curriculum", "checkers_negative_reward"])
-#     wandb.config['curriculum'] = 'checkers_negative_reward'
-#     wandb.config['reward_configuration'] = reward_configuration
-#     wandb.config['total_steps'] = CONFIG.airl.env_steps * (len(grid_sizes) - start_from)
-#
-#     for i in range(len(reward_configuration)):
-#         set_experiment_config(reward_configuration=reward_configuration[i])
-#         if i > 0:
-#             CONFIG.airl.ppo_load_from = CONFIG.airl.ppo_save_to
-#             CONFIG.airl.disc_load_from = CONFIG.airl.disc_save_to
-#         main(logging_start_step=i*CONFIG.airl.env_steps)
-#
-#     wandb.finish()
 
 
 def positive_stripe_reward_curriculum():

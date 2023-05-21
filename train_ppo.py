@@ -46,6 +46,7 @@ def main():
         states_tensor = torch.tensor(states).float().to(device)
 
     torch.save(ppo.state_dict(), CONFIG.ppo_train.save_to)
+    print(f'Saved PPO to: {CONFIG.ppo_train.save_to}')
     model_art = wandb.Artifact('expert_model', type='model')
     model_art.add_file(CONFIG.ppo_train.save_to)
     wandb.log_artifact(model_art)

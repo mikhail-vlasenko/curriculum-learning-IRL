@@ -11,6 +11,11 @@ import pickle
 
 
 def main(logging_start_step=0):
+    """
+    Trains the AIRL policy and discriminator
+    :param logging_start_step:
+    :return: last step on which training was done
+    """
     CONFIG.ppo.entropy_reg = 0.0
 
     print(f'Using data from {CONFIG.airl.expert_data_path}')
@@ -34,6 +39,8 @@ def main(logging_start_step=0):
         optimizer_discriminator = torch.optim.Adam(discriminator.parameters(), lr=CONFIG.discriminator.lr)
     elif CONFIG.airl.optimizer_disc == 'sgd':
         optimizer_discriminator = torch.optim.SGD(discriminator.parameters(), lr=CONFIG.discriminator.lr)
+    else:
+        raise ValueError(f'Invalid optimizer {CONFIG.airl.optimizer_disc} for discriminator')
     dataset = TrajectoryDataset(batch_size=CONFIG.ppo.batch_size, n_workers=CONFIG.ppo.n_workers)
 
     if CONFIG.airl.disc_load_from is not None:
@@ -42,6 +49,7 @@ def main(logging_start_step=0):
     if CONFIG.airl.ppo_load_from is not None:
         ppo.load_state_dict(torch.load(CONFIG.airl.ppo_load_from))
 
+    step = 0
     for t in tqdm(range((int(CONFIG.airl.env_steps / CONFIG.ppo.n_workers)))):
         action, log_probs = ppo.act(state_tensor)
         next_state, reward, done, _, info = env.step(action)
@@ -59,9 +67,10 @@ def main(logging_start_step=0):
         train_ready = dataset.write_tuple(state, action, airl_rewards, done, log_probs, logs=reward)
 
         if train_ready:
+            step = t * CONFIG.ppo.n_workers + logging_start_step
             wandb.log({'Reward': dataset.log_objectives().mean(),
                        'Returns': dataset.log_returns().mean(),
-                       'Lengths': dataset.log_lengths().mean()}, step=t * CONFIG.ppo.n_workers + logging_start_step)
+                       'Lengths': dataset.log_lengths().mean()}, step=step)
 
             # Update Models
             update_policy(
@@ -81,7 +90,7 @@ def main(logging_start_step=0):
 
             wandb.log({'Discriminator Loss': d_loss,
                        'Fake Accuracy': fake_acc,
-                       'Real Accuracy': real_acc}, step=t * CONFIG.ppo.n_workers + logging_start_step)
+                       'Real Accuracy': real_acc}, step=step)
 
             torch.save(discriminator.state_dict(), DISC_CHECKPOINT)
             torch.save(ppo.state_dict(), PPO_CHECKPOINT)
@@ -106,6 +115,7 @@ def main(logging_start_step=0):
     wandb.log_artifact(data_art)
 
     env.close()
+    return step
 
 
 if __name__ == '__main__':
