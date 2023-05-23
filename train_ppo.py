@@ -7,6 +7,29 @@ import torch
 from envs.env_factory import make_env
 
 
+def test_policy(ppo, env, n_episodes):
+    states, info = env.reset()
+    states_tensor = torch.tensor(states).float().to(device)
+    cnt = 0
+    reward_sum = 0
+    while cnt < n_episodes:
+        action, log_probs = ppo.act(states_tensor)
+        action = action.item()
+        next_states, reward, terminated, truncated, _ = env.step(action)
+        done = terminated or truncated
+        reward_sum += reward
+
+        if done:
+            next_states, info = env.reset()
+            cnt += 1
+
+        # Prepare state input for next time step
+        states = next_states.copy()
+        states_tensor = torch.tensor(states).float().to(device)
+
+    return reward_sum / n_episodes
+
+
 def main():
     env = make_env()
 

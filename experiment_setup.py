@@ -2,15 +2,20 @@ import wandb
 
 from airl_gridworld_train import main
 from config import CONFIG, set_experiment_config
+from envs.env_factory import make_env
 
 
 def increasing_grid_size_curriculum():
+    CONFIG.env.vectorized = False
+    test_env = make_env()
+    CONFIG.env.vectorized = True
+
     # todo: dynamically trigger next env when trained on current env
     share_of_env_steps = [0.3, 0.7]
     grid_sizes = [5, 10]
     # max_steps = [15, 45]
     max_steps = [15, 30]
-    lrs = [CONFIG.ppo.lr, CONFIG.ppo.lr / 2]
+    lrs = [CONFIG.ppo.lr * 5, CONFIG.ppo.lr]
 
     last_trained_step = 0
 
@@ -26,7 +31,7 @@ def increasing_grid_size_curriculum():
         if i > 0:
             CONFIG.airl.ppo_load_from = CONFIG.airl.ppo_save_to
             CONFIG.airl.disc_load_from = CONFIG.airl.disc_save_to
-        last_trained_step = main(logging_start_step=last_trained_step)
+        last_trained_step = main(logging_start_step=last_trained_step, test_env=test_env)
 
     wandb.finish()
 

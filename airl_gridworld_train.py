@@ -9,6 +9,8 @@ from rl_algos.ppo_from_airl import *
 import torch
 import pickle
 
+from train_ppo import test_policy
+
 
 def init_models(env):
     # Fetch Shapes
@@ -89,12 +91,21 @@ def main(logging_start_step=0, test_env=None):
         next_state_tensor = torch.tensor(next_state).to(device).float()
 
         train_ready = write_dataset(
-            dataset, discriminator, next_state_tensor, state_tensor, state, reward, done, action, log_probs)
+            dataset, discriminator, next_state_tensor, state_tensor,
+            state, reward, done, action, log_probs
+        )
 
         if train_ready:
             step = t * CONFIG.ppo.n_workers + logging_start_step
-            wandb.log({'Reward': dataset.log_objectives().mean(),
-                       'Returns': dataset.log_returns().mean(),
+            if test_env is not None:
+                test_reward = test_policy(ppo, test_env, n_episodes=CONFIG.ppo.test_episodes)
+                wandb.log({'Reward': test_reward,
+                           'Current env reward': dataset.log_objectives().mean()}, step=step)
+            else:
+                wandb.log({'Reward': dataset.log_objectives().mean(),
+                           'Current env reward': dataset.log_objectives().mean()}, step=step)
+
+            wandb.log({'Returns': dataset.log_returns().mean(),
                        'Lengths': dataset.log_lengths().mean()}, step=step)
 
             # Update Models

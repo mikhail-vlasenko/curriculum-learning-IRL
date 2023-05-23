@@ -45,6 +45,7 @@ class PPOConfig:
     nonlinear: str = 'relu'  # tanh, relu
     dimensions: List[int] = field(default_factory=lambda: [128, 128])
     simple_architecture: bool = True
+    test_episodes: int = 10
 
 
 @dataclass
@@ -55,7 +56,7 @@ class DemosConfig:
 
 @dataclass
 class AIRLConfig:
-    env_steps: int = 1000000  # total steps from training, even with curriculum
+    env_steps: int = 500000  # total steps from training, even with curriculum
     expert_data_path: str = None
     optimizer_disc: str = 'adam'  # adam, sgd (with no momentum)
 
