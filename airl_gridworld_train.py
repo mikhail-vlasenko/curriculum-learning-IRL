@@ -71,7 +71,7 @@ def main(logging_start_step=0, test_env=None):
     be tested on each gradient step. Rewards are logged to wandb.
     :return: last step on which training was done
     """
-    CONFIG.ppo.entropy_reg = 0.0
+    # CONFIG.ppo.entropy_reg = 0.0
 
     print(f'Using data from {CONFIG.airl.expert_data_path}')
     expert_trajectories = pickle.load(open(CONFIG.airl.expert_data_path, 'rb'))

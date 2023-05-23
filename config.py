@@ -37,7 +37,7 @@ class PPOConfig:
     """
     batch_size: int = 1024
     n_workers: int = 64
-    lr: float = 1e-3
+    lr: float = 1e-3 / 4
     entropy_reg: float = 0.05
     gamma: float = 0.99
     epsilon: float = 0.1
@@ -45,7 +45,7 @@ class PPOConfig:
     nonlinear: str = 'relu'  # tanh, relu
     dimensions: List[int] = field(default_factory=lambda: [128, 128])
     simple_architecture: bool = True
-    test_episodes: int = 10
+    test_episodes: int = 30
 
 
 @dataclass
@@ -56,7 +56,7 @@ class DemosConfig:
 
 @dataclass
 class AIRLConfig:
-    env_steps: int = 500000  # total steps from training, even with curriculum
+    env_steps: int = 1000000  # total steps from training, even with curriculum
     expert_data_path: str = None
     optimizer_disc: str = 'adam'  # adam, sgd (with no momentum)
 
@@ -73,9 +73,9 @@ class AIRLConfig:
 @dataclass
 class DiscriminatorConfig:
     batch_size: int = 1024
-    lr: float = 5e-4
+    lr: float = 5e-4 / 2
     simple_architecture: bool = True
-    dimensions: List[int] = field(default_factory=lambda: [128, 128])
+    dimensions: List[int] = field(default_factory=lambda: [256, 256])
 
 
 @dataclass

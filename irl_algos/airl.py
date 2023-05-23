@@ -41,7 +41,8 @@ class DiscriminatorMLP(nn.Module):
         self.reward_l3 = nn.Linear(512, 256)
 
         # Activation
-        self.relu = nn.LeakyReLU(0.01)
+        # self.relu = nn.LeakyReLU(0.01)
+        self.relu = nn.ReLU()
 
     def g(self, state):
         state = state.view(state.shape[0], -1)

@@ -1,5 +1,6 @@
 import random
 
+from config import get_demo_name
 from irl_algos.airl import *
 from rl_algos.ppo_from_airl import *
 import torch
@@ -16,6 +17,7 @@ for _ in range(10):
     i = random.randint(0, len(expert_trajectories)-1)
     print(len(expert_trajectories[i]['actions']), expert_trajectories[i])
 
+print(f'average reward: {np.mean([sum(traj["rewards"]) for traj in expert_trajectories])}')
 print(f'Averaged length of trajectories: {np.mean([len(traj["actions"]) for traj in expert_trajectories])}')
 
 n = CONFIG.env.grid_size
