@@ -178,6 +178,13 @@ class GridWorldEnv(Env):
                 self.rewards[pos_idx:pos_idx+2, :] = -self.rewards[pos_idx:pos_idx+2, :]
             else:
                 self.rewards[:, pos_idx:pos_idx+2] = -self.rewards[:, pos_idx:pos_idx+2]
+        elif self.reward_configuration == 'walk_around':
+            # pattern = np.array([
+            #     [0, -1, 0],
+            #     [1, -1, 1],
+            #     [0,  1, 0],
+            # ])
+            pass
         elif self.reward_configuration == 'default':
             pass
         else:

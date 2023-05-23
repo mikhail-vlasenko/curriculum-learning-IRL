@@ -10,23 +10,7 @@ import torch
 import pickle
 
 
-def main(logging_start_step=0):
-    """
-    Trains the AIRL policy and discriminator
-    :param logging_start_step:
-    :return: last step on which training was done
-    """
-    CONFIG.ppo.entropy_reg = 0.0
-
-    print(f'Using data from {CONFIG.airl.expert_data_path}')
-    expert_trajectories = pickle.load(open(CONFIG.airl.expert_data_path, 'rb'))
-
-    # Create Environment
-    env = make_env()
-
-    state, info = env.reset()
-    state_tensor = torch.tensor(state).float().to(device)
-
+def init_models(env):
     # Fetch Shapes
     n_actions = env.action_space.n
     obs_shape = env.observation_space.shape
@@ -41,7 +25,6 @@ def main(logging_start_step=0):
         optimizer_discriminator = torch.optim.SGD(discriminator.parameters(), lr=CONFIG.discriminator.lr)
     else:
         raise ValueError(f'Invalid optimizer {CONFIG.airl.optimizer_disc} for discriminator')
-    dataset = TrajectoryDataset(batch_size=CONFIG.ppo.batch_size, n_workers=CONFIG.ppo.n_workers)
 
     if CONFIG.airl.disc_load_from is not None:
         discriminator.load_state_dict(torch.load(CONFIG.airl.disc_load_from))
@@ -49,22 +32,64 @@ def main(logging_start_step=0):
     if CONFIG.airl.ppo_load_from is not None:
         ppo.load_state_dict(torch.load(CONFIG.airl.ppo_load_from))
 
+    dataset = TrajectoryDataset(batch_size=CONFIG.ppo.batch_size, n_workers=CONFIG.ppo.n_workers)
+    return ppo, discriminator, optimizer, optimizer_discriminator, dataset
+
+
+def write_dataset(dataset, discriminator, next_state_tensor, state_tensor, state, reward, done, action, log_probs):
+    # Calculate (vectorized) AIRL reward
+    airl_action_prob = torch.exp(torch.tensor(log_probs)).to(device).float()
+    airl_rewards = discriminator.predict_reward(
+        state_tensor, next_state_tensor, CONFIG.ppo.gamma, airl_action_prob
+    )
+    airl_rewards = airl_rewards.detach().cpu().numpy()
+    airl_rewards[done] = 0
+
+    # Save Trajectory
+    train_ready = dataset.write_tuple(state, action, airl_rewards, done, log_probs, logs=reward)
+    return train_ready
+
+
+def save_wandb_artifacts():
+    model_art = wandb.Artifact('airl_models', type='model')
+    model_art.add_file(CONFIG.airl.disc_save_to)
+    model_art.add_file(CONFIG.airl.ppo_save_to)
+    wandb.log_artifact(model_art)
+
+    data_art = wandb.Artifact('airl_data', type='dataset')
+    data_art.add_file(CONFIG.airl.expert_data_path)
+    wandb.log_artifact(data_art)
+
+
+def main(logging_start_step=0, test_env=None):
+    """
+    Trains the AIRL policy and discriminator
+    :param logging_start_step:
+    :param test_env: Environment to test on. When a curriculum is used, this is the environment on which the policy can
+    be tested on each gradient step. Rewards are logged to wandb.
+    :return: last step on which training was done
+    """
+    CONFIG.ppo.entropy_reg = 0.0
+
+    print(f'Using data from {CONFIG.airl.expert_data_path}')
+    expert_trajectories = pickle.load(open(CONFIG.airl.expert_data_path, 'rb'))
+
+    # Create Environment
+    env = make_env()
+
+    state, info = env.reset()
+    state_tensor = torch.tensor(state).float().to(device)
+
+    ppo, discriminator, optimizer, optimizer_discriminator, dataset = init_models(env)
+
     step = 0
     for t in tqdm(range((int(CONFIG.airl.env_steps / CONFIG.ppo.n_workers)))):
         action, log_probs = ppo.act(state_tensor)
         next_state, reward, done, _, info = env.step(action)
         next_state_tensor = torch.tensor(next_state).to(device).float()
 
-        # Calculate (vectorized) AIRL reward
-        airl_action_prob = torch.exp(torch.tensor(log_probs)).to(device).float()
-        airl_rewards = discriminator.predict_reward(
-            state_tensor, next_state_tensor, CONFIG.ppo.gamma, airl_action_prob
-        )
-        airl_rewards = airl_rewards.detach().cpu().numpy()
-        airl_rewards[done] = 0
-
-        # Save Trajectory
-        train_ready = dataset.write_tuple(state, action, airl_rewards, done, log_probs, logs=reward)
+        train_ready = write_dataset(
+            dataset, discriminator, next_state_tensor, state_tensor, state, reward, done, action, log_probs)
 
         if train_ready:
             step = t * CONFIG.ppo.n_workers + logging_start_step
@@ -104,15 +129,7 @@ def main(logging_start_step=0):
     torch.save(discriminator.state_dict(), CONFIG.airl.disc_save_to)
     torch.save(ppo.state_dict(), CONFIG.airl.ppo_save_to)
 
-    # save model artifacts to wandb
-    model_art = wandb.Artifact('airl_models', type='model')
-    model_art.add_file(CONFIG.airl.disc_save_to)
-    model_art.add_file(CONFIG.airl.ppo_save_to)
-    wandb.log_artifact(model_art)
-
-    data_art = wandb.Artifact('airl_data', type='dataset')
-    data_art.add_file(CONFIG.airl.expert_data_path)
-    wandb.log_artifact(data_art)
+    save_wandb_artifacts()
 
     env.close()
     return step

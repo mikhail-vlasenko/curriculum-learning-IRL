@@ -15,7 +15,7 @@ class EnvConfig:
     vectorized: bool = True
     tensor_state: bool = False
     render: bool = False
-    reward_configuration: str = 'default'  # default, checkers, positive_stripe
+    reward_configuration: str = 'default'  # default, checkers, positive_stripe, walk_around
     spawn_distance: int = -1  # -1 means random
 
 
