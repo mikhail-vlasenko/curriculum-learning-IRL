@@ -341,15 +341,15 @@ def update_discriminator(
 
 def update_discriminator_mine(discriminator, optimizer, gamma, expert_trajectories, policy_trajectories,
                               ppo, batch_size):
-    ex_states, ex_next_states, ex_action_probabilities, labels, latents\
+    ex_states, ex_next_states, ex_action_probabilities, labels, _\
         = training_sampler(expert_trajectories, policy_trajectories, ppo, batch_size, only_expert=True)
-    po_states, po_next_states, po_action_probabilities, labels, latents\
+    po_states, po_next_states, po_action_probabilities, labels, _\
         = training_sampler(expert_trajectories, policy_trajectories, ppo, batch_size, only_policy=True)
-    if len(latents) > 0:
-        raise NotImplementedError
-    else:
-        ex_advantages = discriminator.sub_probs(ex_states, ex_next_states, gamma, ex_action_probabilities)
-        po_advantages = discriminator.sub_probs(ex_states, ex_next_states, gamma, po_action_probabilities)
+    ex_log_action_pis = torch.log(ex_action_probabilities)
+    po_log_action_pis = torch.log(po_action_probabilities)
+
+    ex_advantages = discriminator.predict_reward(ex_states, ex_next_states, gamma, ex_log_action_pis)
+    po_advantages = discriminator.predict_reward(ex_states, ex_next_states, gamma, po_log_action_pis)
 
     # Discriminator is to maximize E_{\pi} [log(1 - D)] + E_{exp} [log(D)].
     loss_exp = -F.logsigmoid(ex_advantages).mean()
@@ -360,12 +360,9 @@ def update_discriminator_mine(discriminator, optimizer, gamma, expert_trajectori
     loss.backward()
     optimizer.step()
 
-    # # Compute Accuracies
-    # label_predictions = torch.argmax(class_predictions, dim=1)
-    # predicted_fake = (label_predictions[labels == 0] == 0).float()
-    # predicted_expert = (label_predictions[labels == 1] == 1).float()
-    predicted_fake = torch.zeros(batch_size)
-    predicted_expert = torch.ones(batch_size)
+    # Compute Accuracies
+    acc_po = (po_advantages < 0).float().mean().item()
+    acc_exp = (ex_advantages > 0).float().mean().item()
 
-    return loss.item(), torch.mean(predicted_fake).item(), torch.mean(predicted_expert).item()
+    return loss.item(), acc_po, acc_exp
 

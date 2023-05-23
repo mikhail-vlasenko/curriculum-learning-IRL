@@ -76,6 +76,8 @@ class AIRL(PPO):
     def update_disc(self, states, dones, log_pis, next_states,
                     states_exp, dones_exp, log_pis_exp,
                     next_states_exp, writer):
+        # log_pis are the second output from reparameterize(self.net(states), self.log_stds)
+
         # Output of discriminator is (-inf, inf), not [0, 1].
         logits_pi = self.disc(states, dones, log_pis, next_states)
         logits_exp = self.disc(
