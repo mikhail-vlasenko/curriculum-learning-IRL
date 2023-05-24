@@ -126,6 +126,8 @@ class GridWorldEnv(Env):
         return observation, info
 
     def step(self, action):
+        # remove the reward from the tile we are leaving
+        self.get_tile_reward(reset=True)
         # terminate after some steps
         # Map the action (element of {0,1,2,3}) to the direction we walk in
         direction = self._action_to_direction[action]
@@ -135,7 +137,7 @@ class GridWorldEnv(Env):
         )
         # An episode is done iff the agent has reached the target
         terminated = np.array_equal(self._agent_location, self._target_location)
-        reward = self.get_tile_reward(reset=True)
+        reward = self.get_tile_reward(reset=False)
         observation = self._get_obs()
         info = self._get_info()
         self._time += 1
