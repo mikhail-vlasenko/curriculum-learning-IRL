@@ -21,7 +21,7 @@ class SingleCorrectAction(gym.Env):
         assert self.action_space.contains(action), "Invalid action!"
 
         if action == 0:
-            reward = -0.1
+            reward = -1
         elif action == 1:
             reward = 1
             self.counter += 1  # Increment the counter when action 1 is chosen

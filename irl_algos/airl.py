@@ -340,11 +340,11 @@ def update_discriminator(
 
 
 def update_discriminator_mine(discriminator, optimizer, gamma, expert_trajectories, policy_trajectories,
-                              ppo, batch_size, latent_posterior=None):
+                              ppo, batch_size):
     ex_states, ex_next_states, ex_action_probabilities, labels, latents\
-        = training_sampler(expert_trajectories, policy_trajectories, ppo, batch_size, latent_posterior, only_expert=True)
+        = training_sampler(expert_trajectories, policy_trajectories, ppo, batch_size, only_expert=True)
     po_states, po_next_states, po_action_probabilities, labels, latents\
-        = training_sampler(expert_trajectories, policy_trajectories, ppo, batch_size, latent_posterior, only_policy=True)
+        = training_sampler(expert_trajectories, policy_trajectories, ppo, batch_size, only_policy=True)
     if len(latents) > 0:
         raise NotImplementedError
     else:
