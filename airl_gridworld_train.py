@@ -153,5 +153,7 @@ if __name__ == '__main__':
     tags = ['single_dataset']
     if CONFIG.airl.disc_load_from is not None or CONFIG.airl.ppo_load_from is not None:
         tags.append('continued_training')
-    wandb.init(project='AIRL', dir='wandb', config=CONFIG.as_dict(), tags=tags)
+    if CONFIG.env.id == 'SingleCorrectAction':
+        tags.append('single_correct_action_env')
+    wandb.init(project='single-correct-AIRL', dir='wandb', config=CONFIG.as_dict(), tags=tags)
     main()

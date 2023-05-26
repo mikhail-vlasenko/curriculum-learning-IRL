@@ -89,5 +89,7 @@ if __name__ == '__main__':
         tags.append('only_end_reward')
     if 'FlattenObs' in CONFIG.env.wrappers:
         tags.append('flatten_obs')
+    if CONFIG.env.id == 'SingleCorrectAction':
+        tags.append('single_correct_action_env')
     wandb.init(project='PPO', config=CONFIG.as_dict(), tags=tags)
     main()

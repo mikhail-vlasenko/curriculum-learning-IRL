@@ -6,7 +6,7 @@ import torch
 
 @dataclass
 class EnvConfig:
-    id: str = 'gym_examples/GridWorld-v0'
+    id: str = 'SingleCorrectAction'  # gym_examples/GridWorld-v0, SingleCorrectAction
     grid_size: int = 10
     max_steps: int = 30
     obs_dist: int = 2
@@ -24,10 +24,10 @@ class PPOTrainConfig:
     """
     Config for training the expert PPO
     """
-    env_steps: int = 500000
-    load_from: str = 'saved_models/rew_per_tile_ppo_expert10.pt'
-    # load_from: str = None
-    save_to: str = f'saved_models/rew_per_tile_ppo_expert{EnvConfig.grid_size}.pt'
+    env_steps: int = 100000
+    # load_from: str = 'saved_models/rew_per_tile_ppo_expert10.pt'
+    load_from: str = None
+    save_to: str = f'saved_models/simple_ppo_expert.pt'
 
 
 @dataclass
@@ -37,27 +37,27 @@ class PPOConfig:
     """
     batch_size: int = 1024
     n_workers: int = 64
-    lr: float = 1e-3 / 4
+    lr: float = 1e-3
     entropy_reg: float = 0.05
     gamma: float = 0.99
     epsilon: float = 0.1
     update_epochs: int = 5
     nonlinear: str = 'relu'  # tanh, relu
-    dimensions: List[int] = field(default_factory=lambda: [128, 128])
+    dimensions: List[int] = field(default_factory=lambda: [8, 8])
     simple_architecture: bool = True
     test_episodes: int = 30
 
 
 @dataclass
 class DemosConfig:
-    n_steps: int = 50000
-    load_from: str = f'saved_models/rew_per_tile_ppo_expert{EnvConfig.grid_size}.pt'
+    n_steps: int = 5000
+    load_from: str = f'saved_models/simple_ppo_expert.pt'
 
 
 @dataclass
 class AIRLConfig:
     env_steps: int = 1000000  # total steps from training, even with curriculum
-    expert_data_path: str = None
+    expert_data_path: str = 'demonstrations/ppo_demos_single_correct.pk'
     optimizer_disc: str = 'adam'  # adam, sgd (with no momentum)
 
     disc_load_from: str = None
@@ -73,9 +73,9 @@ class AIRLConfig:
 @dataclass
 class DiscriminatorConfig:
     batch_size: int = 1024
-    lr: float = 5e-4 / 2
+    lr: float = 5e-4
     simple_architecture: bool = True
-    dimensions: List[int] = field(default_factory=lambda: [256, 256])
+    dimensions: List[int] = field(default_factory=lambda: [16, 16])
 
 
 @dataclass
