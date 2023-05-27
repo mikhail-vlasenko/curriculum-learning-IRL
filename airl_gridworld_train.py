@@ -114,7 +114,7 @@ def main(logging_start_step=0, test_env=None):
                 CONFIG.ppo.gamma, CONFIG.ppo.epsilon, CONFIG.ppo.update_epochs,
                 entropy_reg=CONFIG.ppo.entropy_reg
             )
-            d_loss, fake_acc, real_acc = update_discriminator_mine(
+            d_loss, fake_acc, real_acc = update_discriminator(
                 discriminator=discriminator,
                 optimizer=optimizer_discriminator,
                 gamma=CONFIG.ppo.gamma,
