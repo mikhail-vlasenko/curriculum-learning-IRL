@@ -345,11 +345,9 @@ def update_discriminator_mine(discriminator, optimizer, gamma, expert_trajectori
         = training_sampler(expert_trajectories, policy_trajectories, ppo, batch_size, only_expert=True)
     po_states, po_next_states, po_action_probabilities, labels, _\
         = training_sampler(expert_trajectories, policy_trajectories, ppo, batch_size, only_policy=True)
-    ex_log_action_pis = torch.log(ex_action_probabilities)
-    po_log_action_pis = torch.log(po_action_probabilities)
 
-    ex_advantages = discriminator.predict_reward(ex_states, ex_next_states, gamma, ex_log_action_pis)
-    po_advantages = discriminator.predict_reward(ex_states, ex_next_states, gamma, po_log_action_pis)
+    ex_advantages = discriminator.predict_reward(ex_states, ex_next_states, gamma, ex_action_probabilities)
+    po_advantages = discriminator.predict_reward(ex_states, ex_next_states, gamma, po_action_probabilities)
 
     # Discriminator is to maximize E_{\pi} [log(1 - D)] + E_{exp} [log(D)].
     loss_exp = -F.logsigmoid(ex_advantages).mean()
