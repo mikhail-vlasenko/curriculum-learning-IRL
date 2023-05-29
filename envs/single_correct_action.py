@@ -17,6 +17,7 @@ class SingleCorrectAction(gym.Env):
         self.observation_space = spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32)
 
         self.counter = 0  # Counter for action 1
+        self.t = 0  # Counter for the number of steps
 
     def step(self, action):
         assert self.action_space.contains(action), "Invalid action!"
@@ -29,12 +30,15 @@ class SingleCorrectAction(gym.Env):
         else:
             raise ValueError("Invalid action!")
 
+        self.t += 1
+
         done = self.counter >= 10  # Episode ends after 10 actions of value 1
 
-        return np.array([0.], dtype=np.float32), reward, done, done, {}
+        return np.array([self.counter / self.t], dtype=np.float32), reward, done, done, {}
 
     def reset(self, seed=None, options=None):
-        self.counter = 0  # Reset the counter when the environment is reset
+        self.counter = 0
+        self.t = 0
         return np.array([0.], dtype=np.float32), {}
 
     def render(self, mode='human'):

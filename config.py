@@ -57,13 +57,13 @@ class DemosConfig:
 @dataclass
 class AIRLConfig:
     env_steps: int = 1000000  # total steps from training, even with curriculum
-    expert_data_path: str = 'demonstrations/ppo_demos_single_correct.pk'
+    expert_data_path: str = 'demonstrations/ppo_demos_single_correct_with_obs.pk'
     optimizer_disc: str = 'adam'  # adam, sgd (with no momentum)
 
-    disc_load_from: str = None
-    ppo_load_from: str = None
-    # disc_load_from: str = 'saved_models/discriminator.pt'
-    # ppo_load_from: str = 'saved_models/airl_ppo.pt'
+    # disc_load_from: str = None
+    # ppo_load_from: str = None
+    disc_load_from: str = 'saved_models/discriminator.pt'
+    ppo_load_from: str = 'saved_models/airl_ppo.pt'
     load_from_checkpoint: bool = False  # if True, overwrites disc_load_from and ppo_load_from
 
     disc_save_to: str = 'saved_models/discriminator.pt'
@@ -113,7 +113,7 @@ def augment_config():
         CONFIG.airl.disc_load_from = DISC_CHECKPOINT
         CONFIG.airl.ppo_load_from = PPO_CHECKPOINT
     
-    CONFIG.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    CONFIG.device = 'cpu'
     if CONFIG.device == 'cpu':
         print('WARNING: CUDA not available. Using CPU.')
 

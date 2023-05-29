@@ -66,6 +66,6 @@ if __name__ == '__main__':
         print('Saving to demonstrations/from_airl_policy.pk')
         pickle.dump(dataset, open('demonstrations/from_airl_policy.pk', 'wb'))
     else:
-        demo_path = 'demonstrations/ppo_demos_single_correct.pk'
+        demo_path = 'demonstrations/ppo_demos_single_correct_with_obs.pk'
         print(f'Saving to {demo_path}')
         pickle.dump(dataset, open(demo_path, 'wb'))
