@@ -59,6 +59,7 @@ class AIRLConfig:
     env_steps: int = 1000000  # total steps from training, even with curriculum
     expert_data_path: str = None
     optimizer_disc: str = 'adam'  # adam, sgd (with no momentum)
+    freeze_ppo_weights: bool = False
 
     disc_load_from: str = None
     ppo_load_from: str = None

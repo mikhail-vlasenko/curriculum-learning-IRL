@@ -34,6 +34,10 @@ def init_models(env):
     if CONFIG.airl.ppo_load_from is not None:
         ppo.load_state_dict(torch.load(CONFIG.airl.ppo_load_from))
 
+    if CONFIG.airl.freeze_ppo_weights:
+        # init the checkpoint that will be reloaded after every disc update
+        torch.save(ppo.state_dict(), PPO_CHECKPOINT)
+
     dataset = TrajectoryDataset(batch_size=CONFIG.ppo.batch_size, n_workers=CONFIG.ppo.n_workers)
     return ppo, discriminator, optimizer, optimizer_discriminator, dataset
 
@@ -109,11 +113,13 @@ def main(logging_start_step=0, test_env=None):
                        'Lengths': dataset.log_lengths().mean()}, step=step)
 
             # Update Models
-            update_policy(
-                ppo, dataset, optimizer,
-                CONFIG.ppo.gamma, CONFIG.ppo.epsilon, CONFIG.ppo.update_epochs,
-                entropy_reg=CONFIG.ppo.entropy_reg
-            )
+            if not CONFIG.airl.freeze_ppo_weights:
+                update_policy(
+                    ppo, dataset, optimizer,
+                    CONFIG.ppo.gamma, CONFIG.ppo.epsilon, CONFIG.ppo.update_epochs,
+                    entropy_reg=CONFIG.ppo.entropy_reg
+                )
+
             d_loss, fake_acc, real_acc = update_discriminator(
                 discriminator=discriminator,
                 optimizer=optimizer_discriminator,
@@ -129,7 +135,10 @@ def main(logging_start_step=0, test_env=None):
                        'Real Accuracy': real_acc}, step=step)
 
             torch.save(discriminator.state_dict(), DISC_CHECKPOINT)
-            torch.save(ppo.state_dict(), PPO_CHECKPOINT)
+            if not CONFIG.airl.freeze_ppo_weights:
+                torch.save(ppo.state_dict(), PPO_CHECKPOINT)
+            else:
+                ppo.load_state_dict(torch.load(PPO_CHECKPOINT))
 
             dataset.reset_trajectories()
 
