@@ -7,8 +7,8 @@ import torch
 @dataclass
 class EnvConfig:
     id: str = 'gym_examples/GridWorld-v0'
-    grid_size: int = 10
-    max_steps: int = 30
+    grid_size: int = 5
+    max_steps: int = 15
     obs_dist: int = 2
     # 'OnlyEndReward', 'RelativePosition', 'FlattenObs'
     wrappers: List[str] = field(default_factory=lambda: ['FlattenObs'])
@@ -16,7 +16,7 @@ class EnvConfig:
     tensor_state: bool = False
     render: bool = False
     reward_configuration: str = 'default'  # default, checkers, positive_stripe, walk_around
-    spawn_distance: int = -1  # -1 means random
+    spawn_distance: int = -1  # -1 means fully random spawns
 
 
 @dataclass
@@ -37,7 +37,7 @@ class PPOConfig:
     """
     batch_size: int = 1024
     n_workers: int = 64
-    lr: float = 1e-3 / 4
+    lr: float = 1e-3 / 2
     entropy_reg: float = 0.05
     gamma: float = 0.99
     epsilon: float = 0.1
@@ -56,7 +56,7 @@ class DemosConfig:
 
 @dataclass
 class AIRLConfig:
-    env_steps: int = 1000000  # total steps from training, even with curriculum
+    env_steps: int = 500000  # total steps from training, even with curriculum
     expert_data_path: str = None
     optimizer_disc: str = 'adam'  # adam, sgd (with no momentum)
 
@@ -131,6 +131,7 @@ def set_experiment_config(
         wrappers: List[str] = None,
         max_steps: int = None,
         reward_configuration: str = None,
+        spawn_distance: int = None,
         ppo_lr: float = None,
 ) -> None:
     print('Setting experiment config')
@@ -142,6 +143,8 @@ def set_experiment_config(
         CONFIG.env.max_steps = max_steps
     if reward_configuration is not None:
         CONFIG.env.reward_configuration = reward_configuration
+    if spawn_distance is not None:
+        CONFIG.env.spawn_distance = spawn_distance
     if ppo_lr is not None:
         CONFIG.ppo.lr = ppo_lr
     CONFIG.airl.expert_data_path = get_demo_name()
