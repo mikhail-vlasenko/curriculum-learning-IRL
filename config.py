@@ -7,8 +7,8 @@ import torch
 @dataclass
 class EnvConfig:
     id: str = 'gym_examples/GridWorld-v0'
-    grid_size: int = 5
-    max_steps: int = 15
+    grid_size: int = 10
+    max_steps: int = 30
     obs_dist: int = 2
     # 'OnlyEndReward', 'RelativePosition', 'FlattenObs'
     wrappers: List[str] = field(default_factory=lambda: ['FlattenObs'])
@@ -56,7 +56,7 @@ class DemosConfig:
 
 @dataclass
 class AIRLConfig:
-    env_steps: int = 500000  # total steps from training, even with curriculum
+    env_steps: int = 4000000  # total steps from training, even with curriculum
     expert_data_path: str = None
     optimizer_disc: str = 'adam'  # adam, sgd (with no momentum)
 
@@ -73,7 +73,7 @@ class AIRLConfig:
 @dataclass
 class DiscriminatorConfig:
     batch_size: int = 1024
-    lr: float = 5e-4 / 2
+    lr: float = 5e-4 / 4
     simple_architecture: bool = True
     dimensions: List[int] = field(default_factory=lambda: [256, 256])
 

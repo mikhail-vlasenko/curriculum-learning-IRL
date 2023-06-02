@@ -4,6 +4,7 @@ from tqdm import tqdm
 
 from config import *
 from envs.env_factory import make_env
+from gym_examples.wrappers.vec_env import VecEnv
 from irl_algos.airl import *
 from rl_algos.ppo_from_airl import *
 import torch
@@ -49,6 +50,7 @@ def write_dataset(dataset, discriminator, next_state_tensor, state_tensor, state
 
     # Save Trajectory
     train_ready = dataset.write_tuple(state, action, airl_rewards, done, log_probs, logs=reward)
+    #     train_ready = dataset.write_tuple(state, action, np.empty(shape=state.shape), done, log_probs, logs=reward)
     return train_ready
 
 
@@ -77,7 +79,7 @@ def main(logging_start_step=0, test_env=None):
     expert_trajectories = pickle.load(open(CONFIG.airl.expert_data_path, 'rb'))
 
     # Create Environment
-    env = make_env()
+    env: VecEnv = make_env()
 
     state, info = env.reset()
     state_tensor = torch.tensor(state).float().to(device)
@@ -94,9 +96,31 @@ def main(logging_start_step=0, test_env=None):
             dataset, discriminator, next_state_tensor, state_tensor,
             state, reward, done, action, log_probs
         )
+        env.substitute_states(next_state)
+        next_state_tensor = torch.tensor(next_state).to(device).float()
 
         if train_ready:
             step = t * CONFIG.ppo.n_workers + logging_start_step
+
+            # Update Models
+            d_loss, fake_acc, real_acc = update_discriminator(
+                discriminator=discriminator,
+                optimizer=optimizer_discriminator,
+                gamma=CONFIG.ppo.gamma,
+                expert_trajectories=expert_trajectories,
+                policy_trajectories=dataset.trajectories,
+                ppo=ppo,
+                batch_size=CONFIG.discriminator.batch_size
+            )
+
+            # dataset.update_rewards(discriminator)
+
+            update_policy(
+                ppo, dataset, optimizer,
+                CONFIG.ppo.gamma, CONFIG.ppo.epsilon, CONFIG.ppo.update_epochs,
+                entropy_reg=CONFIG.ppo.entropy_reg
+            )
+
             if test_env is not None:
                 test_reward = test_policy(ppo, test_env, n_episodes=CONFIG.ppo.test_episodes)
                 wandb.log({'Reward': test_reward,
@@ -107,22 +131,6 @@ def main(logging_start_step=0, test_env=None):
 
             wandb.log({'Returns': dataset.log_returns().mean(),
                        'Lengths': dataset.log_lengths().mean()}, step=step)
-
-            # Update Models
-            update_policy(
-                ppo, dataset, optimizer,
-                CONFIG.ppo.gamma, CONFIG.ppo.epsilon, CONFIG.ppo.update_epochs,
-                entropy_reg=CONFIG.ppo.entropy_reg
-            )
-            d_loss, fake_acc, real_acc = update_discriminator(
-                discriminator=discriminator,
-                optimizer=optimizer_discriminator,
-                gamma=CONFIG.ppo.gamma,
-                expert_trajectories=expert_trajectories,
-                policy_trajectories=dataset.trajectories,
-                ppo=ppo,
-                batch_size=CONFIG.discriminator.batch_size
-            )
 
             wandb.log({'Discriminator Loss': d_loss,
                        'Fake Accuracy': fake_acc,

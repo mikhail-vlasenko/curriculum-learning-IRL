@@ -136,6 +136,19 @@ class TrajectoryDataset:
 
         return np.array(lengths)
 
+    def update_rewards(self, discriminator):
+        for tau in self.trajectories:
+            state_tensor = torch.tensor(np.array(tau['states'][:-1])).float().to(device)
+            next_state_tensor = torch.tensor(np.array(tau['states'][1:])).float().to(device)
+            # todo: are log_probs the same after discriminator update?
+            airl_action_prob = torch.exp(torch.tensor(tau['log_probs'])).to(device).float()
+            airl_rewards = discriminator.predict_reward(
+                state_tensor, next_state_tensor, CONFIG.ppo.gamma, airl_action_prob
+            )
+            airl_rewards = airl_rewards.detach().cpu().numpy()
+            airl_rewards[-1] = 0
+            tau['rewards'] = airl_rewards
+
 
 def g_clip(epsilon, A):
     return torch.tensor([1 + epsilon if i else 1 - epsilon for i in A >= 0]).to(device) * A

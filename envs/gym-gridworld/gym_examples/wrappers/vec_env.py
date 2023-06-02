@@ -12,6 +12,7 @@ class VecEnv:
         self.n_envs = len(env_list)
         self.action_space = self.env_list[0].action_space
         self.observation_space = self.env_list[0].observation_space
+        self.dones = np.full(self.n_envs, False)
 
     def reset(self) -> (np.ndarray[np.ndarray], List[Dict]):
         obs_list = []
@@ -37,9 +38,7 @@ class VecEnv:
         for i in range(self.n_envs):
             obs_i, rew_i, terminated, truncated, info_i = self.env_list[i].step(actions[i])
             done_i = terminated | truncated
-
-            if done_i:
-                obs_i, info_i = self.env_list[i].reset()
+            self.dones[i] = done_i
 
             obs_list.append(obs_i)
             rew_list.append(rew_i)
@@ -51,6 +50,12 @@ class VecEnv:
             states = torch.tensor(states).float().to(self.device)
         return states, np.array(rew_list), \
             np.array(done_list), np.full(self.n_envs, False), info_list
+
+    def substitute_states(self, states):
+        for i in range(self.n_envs):
+            if self.dones[i]:
+                states[i], _ = self.env_list[i].reset()
+                self.dones[i] = False
 
     def close(self):
         for env in self.env_list:
