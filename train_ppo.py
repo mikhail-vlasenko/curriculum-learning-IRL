@@ -45,15 +45,17 @@ def main():
     optimizer = torch.optim.Adam(ppo.parameters(), lr=CONFIG.ppo.lr)
     dataset = TrajectoryDataset(batch_size=CONFIG.ppo.batch_size, n_workers=CONFIG.ppo.n_workers)
 
-    states, info = env.reset()
-    states_tensor = torch.tensor(states).float().to(device)
+    state, info = env.reset()
+    states_tensor = torch.tensor(state).float().to(device)
 
     for t in tqdm(range(int(CONFIG.ppo_train.env_steps / CONFIG.ppo.n_workers))):
         action, log_probs = ppo.act(states_tensor)
-        next_states, rewards, terminated, truncated, info = env.step(action)
+        next_state, reward, terminated, truncated, info = env.step(action)
         done = terminated | truncated
 
-        train_ready = dataset.write_tuple(states, action, rewards, done, log_probs, logs=rewards)
+        train_ready = dataset.write_tuple(state, action, reward, done, log_probs, logs=reward)
+
+        env.substitute_states(next_state)
 
         if train_ready:
             update_policy(ppo, dataset, optimizer, CONFIG.ppo.gamma, CONFIG.ppo.epsilon, CONFIG.ppo.update_epochs,
@@ -65,8 +67,8 @@ def main():
             dataset.reset_trajectories()
 
         # Prepare state input for next time step
-        states = next_states.copy()
-        states_tensor = torch.tensor(states).float().to(device)
+        state = next_state.copy()
+        states_tensor = torch.tensor(state).float().to(device)
 
     torch.save(ppo.state_dict(), CONFIG.ppo_train.save_to)
     print(f'Saved PPO to: {CONFIG.ppo_train.save_to}')

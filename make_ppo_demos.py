@@ -26,6 +26,7 @@ def make_demos(load_from: str = None):
 
     # Load Pretrained PPO
     ppo = PPO(state_shape=obs_shape[0], n_actions=n_actions).to(device)
+    print('Loading PPO from: ', load_from)
     ppo.load_state_dict(torch.load(load_from))
 
     states, info = env.reset()

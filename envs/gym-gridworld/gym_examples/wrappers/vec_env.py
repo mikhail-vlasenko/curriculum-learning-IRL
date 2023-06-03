@@ -27,7 +27,7 @@ class VecEnv:
     def step(self, actions) -> \
             (np.ndarray[np.ndarray], np.ndarray[float], np.ndarray[bool], np.ndarray[bool], List[Dict]):
         """
-        Automatically resets the environment if done
+        Does not automatically reset the environment when done.
         :param actions:
         :return:
         """
@@ -52,6 +52,11 @@ class VecEnv:
             np.array(done_list), np.full(self.n_envs, False), info_list
 
     def substitute_states(self, states):
+        """
+        Modifies the state array in-place with observations from resetting the envs that are done.
+        :param states:
+        :return:
+        """
         for i in range(self.n_envs):
             if self.dones[i]:
                 states[i], _ = self.env_list[i].reset()
