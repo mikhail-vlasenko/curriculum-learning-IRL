@@ -70,7 +70,7 @@ class PPO(nn.Module):
         return action.detach().cpu().numpy(), m.log_prob(action).detach().cpu().numpy()
 
     def evaluate_trajectory(self, tau):
-        trajectory_states = torch.tensor(np.array(tau['states'])).float().to(device)  # says its super slow
+        trajectory_states = torch.tensor(np.array(tau['states'][:-1])).float().to(device)
         trajectory_actions = torch.tensor(tau['actions']).to(device)
         action_probabilities, critic_values = self.forward(trajectory_states)
         dist = Categorical(action_probabilities)
@@ -96,7 +96,7 @@ class TrajectoryDataset:
         self.trajectories = []
         self.step_count = 0
 
-    def write_tuple(self, states, actions, rewards, done, log_probs, logs=None) -> bool:
+    def write_tuple(self, states, next_states, actions, rewards, done, log_probs, logs=None) -> bool:
         # Takes states of shape (n_workers, state_shape[0], state_shape[1])
         for i in range(self.n_workers):
             self.buffer[i]['states'].append(states[i])
@@ -108,6 +108,7 @@ class TrajectoryDataset:
                 self.buffer[i]['logs'].append(logs[i])
 
             if done[i]:
+                self.buffer[i]['states'].append(next_states[i].copy())
                 self.trajectories.append(self.buffer[i].copy())
                 self.step_count += len(self.buffer[i]['actions'])
                 self.reset_buffer(i)
@@ -140,7 +141,6 @@ class TrajectoryDataset:
         for tau in self.trajectories:
             state_tensor = torch.tensor(np.array(tau['states'][:-1])).float().to(device)
             next_state_tensor = torch.tensor(np.array(tau['states'][1:])).float().to(device)
-            # todo: are log_probs the same after discriminator update?
             airl_action_prob = torch.exp(torch.tensor(tau['log_probs'])).to(device).float()
             airl_rewards = discriminator.predict_reward(
                 state_tensor, next_state_tensor, CONFIG.ppo.gamma, airl_action_prob

@@ -39,18 +39,18 @@ def init_models(env):
     return ppo, discriminator, optimizer, optimizer_discriminator, dataset
 
 
-def write_dataset(dataset, discriminator, next_state_tensor, state_tensor, state, reward, done, action, log_probs):
-    # Calculate (vectorized) AIRL reward
-    airl_action_prob = torch.exp(torch.tensor(log_probs)).to(device).float()
-    airl_rewards = discriminator.predict_reward(
-        state_tensor, next_state_tensor, CONFIG.ppo.gamma, airl_action_prob
-    )
-    airl_rewards = airl_rewards.detach().cpu().numpy()
-    airl_rewards[done] = 0
+def write_dataset(dataset, discriminator, next_state_tensor, state_tensor, state, next_state, reward, done, action, log_probs):
+    # # Calculate (vectorized) AIRL reward
+    # airl_action_prob = torch.exp(torch.tensor(log_probs)).to(device).float()
+    # airl_rewards = discriminator.predict_reward(
+    #     state_tensor, next_state_tensor, CONFIG.ppo.gamma, airl_action_prob
+    # )
+    # airl_rewards = airl_rewards.detach().cpu().numpy()
+    # airl_rewards[done] = 0
 
     # Save Trajectory
-    train_ready = dataset.write_tuple(state, action, airl_rewards, done, log_probs, logs=reward)
-    #     train_ready = dataset.write_tuple(state, action, np.empty(shape=state.shape), done, log_probs, logs=reward)
+    # train_ready = dataset.write_tuple(state, action, airl_rewards, done, log_probs, logs=reward)
+    train_ready = dataset.write_tuple(state, next_state, action, np.empty(shape=state.shape), done, log_probs, logs=reward)
     return train_ready
 
 
@@ -94,13 +94,16 @@ def main(logging_start_step=0, test_env=None):
 
         train_ready = write_dataset(
             dataset, discriminator, next_state_tensor, state_tensor,
-            state, reward, done, action, log_probs
+            state, next_state, reward, done, action, log_probs
         )
         env.substitute_states(next_state)
         next_state_tensor = torch.tensor(next_state).to(device).float()
 
         if train_ready:
             step = t * CONFIG.ppo.n_workers + logging_start_step
+
+            # _, log_probs = ppo.act(next_state_tensor)
+            # print(next_state_tensor)
 
             # Update Models
             d_loss, fake_acc, real_acc = update_discriminator(
@@ -113,7 +116,14 @@ def main(logging_start_step=0, test_env=None):
                 batch_size=CONFIG.discriminator.batch_size
             )
 
-            # dataset.update_rewards(discriminator)
+            # _, log_probs2 = ppo.act(next_state_tensor)
+            # print(next_state_tensor)
+            #
+            # print(f'log_probs1: {log_probs}')
+            # print(f'log_probs2: {log_probs2}')
+            # assert np.array_equal(log_probs, log_probs2)
+
+            dataset.update_rewards(discriminator)
 
             update_policy(
                 ppo, dataset, optimizer,
