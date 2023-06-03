@@ -2,6 +2,7 @@ from typing import Type
 
 from config import CONFIG
 import gym_examples
+from envs.single_correct_action import SingleCorrectAction
 from gym_examples.wrappers.relative_position import RelativePosition
 from gym_examples.wrappers.vec_env import VecEnv
 from gym_examples.wrappers.clip_reward import ClipReward
@@ -23,6 +24,10 @@ def make_env():
 
 
 def _make_one():
+    if CONFIG.env.id == 'SingleCorrectAction':
+        # used for test purposes
+        return SingleCorrectAction()
+
     render = None
     if CONFIG.env.render:
         render = 'human'

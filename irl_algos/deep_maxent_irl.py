@@ -2,7 +2,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from utils import value_iteration as value_iteration
-import numpy as np
+
+from utils.utils import *
 
 
 class DeepIRLFC(nn.Module):
@@ -139,14 +140,4 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
 #     nn_r.eval()
 #     rewards = nn_r(feat_map)
 #     return normalize(rewards.detach().numpy())
-
-def normalize(vals):
-    """
-    normalize to (0, max_val)
-    input:
-      vals: 1d array
-    """
-    min_val = np.min(vals)
-    max_val = np.max(vals)
-    return (vals - min_val) / (max_val - min_val)
 
