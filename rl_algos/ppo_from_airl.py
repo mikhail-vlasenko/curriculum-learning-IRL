@@ -70,7 +70,7 @@ class PPO(nn.Module):
         return action.detach().cpu().numpy(), m.log_prob(action).detach().cpu().numpy()
 
     def evaluate_trajectory(self, tau):
-        trajectory_states = torch.tensor(np.array(tau['states'])).float().to(device)  # says its super slow
+        trajectory_states = torch.tensor(np.array(tau['states'])).float().to(device)
         trajectory_actions = torch.tensor(tau['actions']).to(device)
         action_probabilities, critic_values = self.forward(trajectory_states)
         dist = Categorical(action_probabilities)
@@ -142,6 +142,20 @@ def g_clip(epsilon, A):
 
 
 def update_policy(ppo: PPO, dataset: TrajectoryDataset, optimizer, gamma, epsilon, n_epochs, entropy_reg) -> None:
+    # rewards = torch.tensor(dataset.trajectories[0]['rewards'])
+    # log_probs = torch.tensor(dataset.trajectories[0]['log_probs'])
+    # states = torch.tensor(dataset.trajectories[0]['states'])
+    # actions = torch.tensor(dataset.trajectories[0]['actions'])
+    # for traj in dataset.trajectories[1:]:
+    #     rewards = torch.cat((rewards, torch.tensor(traj['rewards'])))
+    #     log_probs = torch.cat((log_probs, torch.tensor(traj['log_probs'])))
+    #     states = torch.cat((states, torch.tensor(traj['states'])))
+    #     actions = torch.cat((actions, torch.tensor(traj['actions'])))
+    # rewards = rewards.to(device)
+    # log_probs = log_probs.to(device)
+    # states = states.to(device)
+    # actions = actions.to(device)
+
     for epoch in range(n_epochs):
         batch_loss = 0
         value_loss = 0

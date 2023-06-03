@@ -135,12 +135,12 @@ class GridWorldEnv(Env):
         self._agent_location = np.clip(
             self._agent_location + direction, self.obs_dist, self.obs_dist + self.size - 1
         )
+        self._time += 1
         # An episode is done iff the agent has reached the target
         terminated = np.array_equal(self._agent_location, self._target_location)
         reward = self.get_tile_reward(reset=False)
         observation = self._get_obs()
         info = self._get_info()
-        self._time += 1
 
         if self.render_mode == "human":
             self._render_frame()

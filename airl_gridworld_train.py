@@ -4,6 +4,7 @@ from tqdm import tqdm
 
 from config import *
 from envs.env_factory import make_env
+from gym_examples.wrappers.vec_env import VecEnv
 from irl_algos.airl import *
 from rl_algos.ppo_from_airl import *
 import torch
@@ -81,7 +82,7 @@ def main(logging_start_step=0, test_env=None):
     expert_trajectories = pickle.load(open(CONFIG.airl.expert_data_path, 'rb'))
 
     # Create Environment
-    env = make_env()
+    env: VecEnv = make_env()
 
     state, info = env.reset()
     state_tensor = torch.tensor(state).float().to(device)
@@ -99,7 +100,16 @@ def main(logging_start_step=0, test_env=None):
             state, reward, done, action, log_probs
         )
 
+        env.substitute_states(next_state)
+        next_state_tensor = torch.tensor(next_state).to(device).float()
+
         if train_ready:
+            # for traj in dataset.trajectories:
+            #     print(traj['rewards'])
+            #     print(sum(traj['rewards']))
+            #     for i in range(len(traj['states'])):
+            #         print(traj['states'][i][-1], end=' ')
+            #     print()
             step = t * CONFIG.ppo.n_workers + logging_start_step
             if test_env is not None:
                 test_reward = test_policy(ppo, test_env, n_episodes=CONFIG.ppo.test_episodes)

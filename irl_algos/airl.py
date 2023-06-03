@@ -317,6 +317,8 @@ def update_discriminator(
     states, next_states, action_probabilities, labels, latents = training_sampler(
         expert_trajectories, policy_trajectories, ppo, batch_size, latent_posterior
     )
+    if CONFIG.airl.freeze_ppo_weights:
+        action_probabilities = action_probabilities.detach()
     if len(latents) > 0:
         raise NotImplementedError
     else:
