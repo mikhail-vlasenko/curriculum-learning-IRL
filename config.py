@@ -87,7 +87,7 @@ class Config:
     demos: DemosConfig = field(default_factory=DemosConfig)
     airl: AIRLConfig = field(default_factory=AIRLConfig)
     discriminator: DiscriminatorConfig = field(default_factory=DiscriminatorConfig)
-    device: str = 'cuda:0'
+    device: torch.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     continued_ppo_training: bool = False
     continued_airl_training: bool = False
 
@@ -113,10 +113,6 @@ def augment_config():
     if CONFIG.airl.load_from_checkpoint:
         CONFIG.airl.disc_load_from = DISC_CHECKPOINT
         CONFIG.airl.ppo_load_from = PPO_CHECKPOINT
-    
-    CONFIG.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    if CONFIG.device == 'cpu':
-        print('WARNING: CUDA not available. Using CPU.')
 
 
 def get_demo_name():

@@ -142,19 +142,8 @@ def g_clip(epsilon, A):
 
 
 def update_policy(ppo: PPO, dataset: TrajectoryDataset, optimizer, gamma, epsilon, n_epochs, entropy_reg) -> None:
-    # rewards = torch.tensor(dataset.trajectories[0]['rewards'])
-    # log_probs = torch.tensor(dataset.trajectories[0]['log_probs'])
-    # states = torch.tensor(dataset.trajectories[0]['states'])
-    # actions = torch.tensor(dataset.trajectories[0]['actions'])
-    # for traj in dataset.trajectories[1:]:
-    #     rewards = torch.cat((rewards, torch.tensor(traj['rewards'])))
-    #     log_probs = torch.cat((log_probs, torch.tensor(traj['log_probs'])))
-    #     states = torch.cat((states, torch.tensor(traj['states'])))
-    #     actions = torch.cat((actions, torch.tensor(traj['actions'])))
-    # rewards = rewards.to(device)
-    # log_probs = log_probs.to(device)
-    # states = states.to(device)
-    # actions = actions.to(device)
+    # cpu is usually faster here because of small trajectories
+    CONFIG.device = torch.device("cpu")
 
     for epoch in range(n_epochs):
         batch_loss = 0
@@ -178,3 +167,5 @@ def update_policy(ppo: PPO, dataset: TrajectoryDataset, optimizer, gamma, epsilo
         optimizer.zero_grad()
         overall_loss.backward()
         optimizer.step()
+
+    CONFIG.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
