@@ -3,6 +3,7 @@ import random
 from tqdm import tqdm
 
 from config import CONFIG, get_demo_name
+from ppo_airl.buffer import Buffer
 from rl_algos.ppo_from_airl import PPO, device
 import torch
 import pickle
@@ -30,6 +31,12 @@ def make_demos(load_from: str = None):
 
     states, info = env.reset()
     states_tensor = torch.tensor(states).float().to(device)
+    buffer = Buffer(
+        buffer_size=CONFIG.demos.n_steps,
+        state_shape=env.observation_space.shape,
+        action_shape=env.action_space.shape,
+        device=device
+    )
     dataset = []
     episode = {'states': [], 'actions': [], 'rewards': []}
 
@@ -39,6 +46,8 @@ def make_demos(load_from: str = None):
         next_states, reward, terminated, truncated, _ = env.step(action)
         done = terminated or truncated
         reward_sum += reward
+
+        buffer.append(states, action, reward, done, next_states)
         episode['states'].append(states)
         episode['actions'].append(action)
         episode['rewards'].append(reward)
@@ -52,11 +61,11 @@ def make_demos(load_from: str = None):
         states = next_states.copy()
         states_tensor = torch.tensor(states).float().to(device)
     env.close()
-    return dataset, reward_sum
+    return dataset, buffer, reward_sum
 
 
 if __name__ == '__main__':
-    dataset, reward_sum = make_demos(LOAD_FROM)
+    dataset, buffer, reward_sum = make_demos(LOAD_FROM)
     print(f'Number of episodes: {len(dataset)}')
     print('Sample:')
     for _ in range(2):
@@ -67,4 +76,7 @@ if __name__ == '__main__':
         pickle.dump(dataset, open('demonstrations/from_airl_policy.pk', 'wb'))
     else:
         print(f'Saving to {get_demo_name()}')
-        pickle.dump(dataset, open(get_demo_name(), 'wb'))
+        if CONFIG.algo_from_gail:
+            buffer.save(get_demo_name())
+        else:
+            pickle.dump(dataset, open(get_demo_name(), 'wb'))

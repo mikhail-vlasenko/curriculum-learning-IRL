@@ -299,7 +299,7 @@ def training_sampler(
 
     states = np.stack(states, axis=0)
     batched_action_probability, _ = ppo.forward(torch.tensor(states).float().to(device))
-    batched_action_probability = batched_action_probability.detach()
+    batched_action_probability = batched_action_probability.detach()  # not sure if it helps
     batched_action_probability = batched_action_probability.squeeze(0)
     action_probabilities = [batched_action_probability[i][selected_actions[i]].item() for i in range(batch_size)]
 

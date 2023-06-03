@@ -48,7 +48,7 @@ class Buffer(SerializedBuffer):
 
     def append(self, state, action, reward, done, next_state):
         self.states[self._p].copy_(torch.from_numpy(state))
-        self.actions[self._p].copy_(torch.from_numpy(action))
+        self.actions[self._p].copy_(torch.tensor(action))
         self.rewards[self._p] = float(reward)
         self.dones[self._p] = float(done)
         self.next_states[self._p].copy_(torch.from_numpy(next_state))

@@ -12,7 +12,7 @@ class StateIndependentPolicy(nn.Module):
 
         self.net = build_mlp(
             input_dim=state_shape[0],
-            output_dim=action_shape[0],
+            output_dim=action_shape,
             hidden_units=hidden_units,
             hidden_activation=hidden_activation
         )

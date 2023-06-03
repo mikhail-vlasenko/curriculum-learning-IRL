@@ -7,8 +7,8 @@ import torch
 @dataclass
 class EnvConfig:
     id: str = 'gym_examples/GridWorld-v0'
-    grid_size: int = 5
-    max_steps: int = 15
+    grid_size: int = 10
+    max_steps: int = 30
     obs_dist: int = 2
     # 'OnlyEndReward', 'RelativePosition', 'FlattenObs'
     wrappers: List[str] = field(default_factory=lambda: ['FlattenObs'])
@@ -86,6 +86,7 @@ class Config:
     demos: DemosConfig = field(default_factory=DemosConfig)
     airl: AIRLConfig = field(default_factory=AIRLConfig)
     discriminator: DiscriminatorConfig = field(default_factory=DiscriminatorConfig)
+    algo_from_gail: bool = False  # using https://github.com/toshikwa/gail-airl-ppo.pytorch for updates and buffers
     device: str = 'cuda:0'
     continued_ppo_training: bool = False
     continued_airl_training: bool = False

@@ -6,6 +6,7 @@ from config import *
 from envs.env_factory import make_env
 from gym_examples.wrappers.vec_env import VecEnv
 from irl_algos.airl import *
+from ppo_airl.buffer import RolloutBuffer
 from rl_algos.ppo_from_airl import *
 import torch
 import pickle
@@ -35,8 +36,14 @@ def init_models(env):
     if CONFIG.airl.ppo_load_from is not None:
         ppo.load_state_dict(torch.load(CONFIG.airl.ppo_load_from))
 
-    dataset = TrajectoryDataset(batch_size=CONFIG.ppo.batch_size, n_workers=CONFIG.ppo.n_workers)
-    return ppo, discriminator, optimizer, optimizer_discriminator, dataset
+    # dataset = TrajectoryDataset(batch_size=CONFIG.ppo.batch_size, n_workers=CONFIG.ppo.n_workers)
+    buffer = RolloutBuffer(
+        buffer_size=CONFIG.ppo.batch_size,
+        state_shape=obs_shape[0],
+        action_shape=n_actions,
+        device=device,
+    )
+    return ppo, discriminator, optimizer, optimizer_discriminator, buffer
 
 
 def write_dataset(dataset, discriminator, next_state_tensor, state_tensor, state, next_state, reward, done, action, log_probs):
@@ -74,6 +81,7 @@ def main(logging_start_step=0, test_env=None):
     :return: last step on which training was done
     """
     # CONFIG.ppo.entropy_reg = 0.0
+    assert CONFIG.algo_from_gail is False
 
     print(f'Using data from {CONFIG.airl.expert_data_path}')
     expert_trajectories = pickle.load(open(CONFIG.airl.expert_data_path, 'rb'))
@@ -84,7 +92,7 @@ def main(logging_start_step=0, test_env=None):
     state, info = env.reset()
     state_tensor = torch.tensor(state).float().to(device)
 
-    ppo, discriminator, optimizer, optimizer_discriminator, dataset = init_models(env)
+    ppo, discriminator, optimizer, optimizer_discriminator, buffer = init_models(env)
 
     step = 0
     for t in tqdm(range((int(CONFIG.airl.env_steps / CONFIG.ppo.n_workers)))):
@@ -92,10 +100,13 @@ def main(logging_start_step=0, test_env=None):
         next_state, reward, done, _, info = env.step(action)
         next_state_tensor = torch.tensor(next_state).to(device).float()
 
-        train_ready = write_dataset(
-            dataset, discriminator, next_state_tensor, state_tensor,
-            state, next_state, reward, done, action, log_probs
-        )
+        # train_ready = write_dataset(
+        #     dataset, discriminator, next_state_tensor, state_tensor,
+        #     state, next_state, reward, done, action, log_probs
+        # )
+
+        buffer.append(state, action, reward, done, log_probs, next_state)
+
         env.substitute_states(next_state)
         next_state_tensor = torch.tensor(next_state).to(device).float()
 
@@ -131,16 +142,16 @@ def main(logging_start_step=0, test_env=None):
                 entropy_reg=CONFIG.ppo.entropy_reg
             )
 
-            if test_env is not None:
-                test_reward = test_policy(ppo, test_env, n_episodes=CONFIG.ppo.test_episodes)
-                wandb.log({'Reward': test_reward,
-                           'Current env reward': dataset.log_objectives().mean()}, step=step)
-            else:
-                wandb.log({'Reward': dataset.log_objectives().mean(),
-                           'Current env reward': dataset.log_objectives().mean()}, step=step)
-
-            wandb.log({'Returns': dataset.log_returns().mean(),
-                       'Lengths': dataset.log_lengths().mean()}, step=step)
+            # if test_env is not None:
+            #     test_reward = test_policy(ppo, test_env, n_episodes=CONFIG.ppo.test_episodes)
+            #     wandb.log({'Reward': test_reward,
+            #                'Current env reward': dataset.log_objectives().mean()}, step=step)
+            # else:
+            #     wandb.log({'Reward': dataset.log_objectives().mean(),
+            #                'Current env reward': dataset.log_objectives().mean()}, step=step)
+            #
+            # wandb.log({'Returns': dataset.log_returns().mean(),
+            #            'Lengths': dataset.log_lengths().mean()}, step=step)
 
             wandb.log({'Discriminator Loss': d_loss,
                        'Fake Accuracy': fake_acc,
@@ -173,5 +184,5 @@ if __name__ == '__main__':
         tags.append('continued_training')
     if CONFIG.env.id == 'SingleCorrectAction':
         tags.append('single_correct_action_env')
-    wandb.init(project='single-correct-AIRL', dir='wandb', config=CONFIG.as_dict(), tags=tags)
+    wandb.init(project='AIRL', dir='wandb', config=CONFIG.as_dict(), tags=tags)
     main()

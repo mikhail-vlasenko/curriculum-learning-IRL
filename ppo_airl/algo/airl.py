@@ -3,24 +3,22 @@ from torch import nn
 import torch.nn.functional as F
 from torch.optim import Adam
 
-from .ppo import PPO
+from config import CONFIG
+# from .ppo import PPO
 from ppo_airl.network import AIRLDiscrim
+from rl_algos.ppo_from_airl import PPO, update_policy
 
 
-class AIRL(PPO):
+class AIRL:
 
-    def __init__(self, buffer_exp, state_shape, action_shape, device, seed,
+    def __init__(self, buffer_exp, state_shape, n_actions, device, seed,
                  gamma=0.995, rollout_length=10000, mix_buffer=1,
                  batch_size=64, lr_actor=3e-4, lr_critic=3e-4, lr_disc=3e-4,
                  units_actor=(64, 64), units_critic=(64, 64),
                  units_disc_r=(100, 100), units_disc_v=(100, 100),
                  epoch_ppo=50, epoch_disc=10, clip_eps=0.2, lambd=0.97,
                  coef_ent=0.0, max_grad_norm=10.0):
-        super().__init__(
-            state_shape, action_shape, device, seed, gamma, rollout_length,
-            mix_buffer, lr_actor, lr_critic, units_actor, units_critic,
-            epoch_ppo, clip_eps, lambd, coef_ent, max_grad_norm
-        )
+        self.ppo = PPO(state_shape=state_shape, n_actions=n_actions)
 
         # Expert's buffer.
         self.buffer_exp = buffer_exp
@@ -40,9 +38,7 @@ class AIRL(PPO):
         self.batch_size = batch_size
         self.epoch_disc = epoch_disc
 
-    def update(self, writer):
-        self.learning_steps += 1
-
+    def update(self, dataset, ppo_optimizer):
         for _ in range(self.epoch_disc):
             self.learning_steps_disc += 1
 
@@ -59,19 +55,20 @@ class AIRL(PPO):
             # Update discriminator.
             self.update_disc(
                 states, dones, log_pis, next_states, states_exp,
-                dones_exp, log_pis_exp, next_states_exp, writer
+                dones_exp, log_pis_exp, next_states_exp
             )
 
         # We don't use reward signals here,
         states, actions, _, dones, log_pis, next_states = self.buffer.get()
 
         # Calculate rewards.
-        rewards = self.disc.calculate_reward(
-            states, dones, log_pis, next_states)
+        dataset.update_rewards(self.disc)
 
-        # Update PPO using estimated rewards.
-        self.update_ppo(
-            states, actions, rewards, dones, log_pis, next_states, writer)
+        update_policy(
+            self.ppo, dataset, ppo_optimizer,
+            CONFIG.ppo.gamma, CONFIG.ppo.epsilon, CONFIG.ppo.update_epochs,
+            entropy_reg=CONFIG.ppo.entropy_reg
+        )
 
     def update_disc(self, states, dones, log_pis, next_states,
                     states_exp, dones_exp, log_pis_exp,

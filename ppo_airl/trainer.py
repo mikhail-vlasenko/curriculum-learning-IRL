@@ -14,10 +14,10 @@ class Trainer:
         self.env = env
 
         # Env for evaluation.
-        self.env_test = env_test
+        # self.env_test = env_test
         try:
             self.env.seed(seed)
-            self.env_test.seed(2 ** 31 - seed)
+            # self.env_test.seed(2 ** 31 - seed)
         except AttributeError:
             print("Not able to seed the environment")
 
@@ -37,8 +37,6 @@ class Trainer:
         self.num_eval_episodes = num_eval_episodes
 
     def train(self):
-        # Time to start training.
-        self.start_time = time()
         # Episode's timestep.
         t = 0
         # Initialize the environment.
@@ -53,14 +51,11 @@ class Trainer:
                 # print(f'Step {step} is update')
                 self.algo.update(self.writer)
 
-            # Evaluate regularly.
-            if step % self.eval_interval == 0:
-                self.evaluate(step)
-                self.algo.save_models(
-                    os.path.join(self.model_dir, f'step{step}'))
-
-        # Wait for the logging to be finished.
-        sleep(10)
+            # # Evaluate regularly.
+            # if step % self.eval_interval == 0:
+            #     self.evaluate(step)
+            #     self.algo.save_models(
+            #         os.path.join(self.model_dir, f'step{step}'))
 
     def evaluate(self, step):
         mean_return = 0.0
@@ -79,10 +74,3 @@ class Trainer:
             mean_return += episode_return / self.num_eval_episodes
 
         self.writer.add_scalar('return/test', mean_return, step)
-        print(f'Num steps: {step:<6}   '
-              f'Return: {mean_return:<5.1f}   '
-              f'Time: {self.time}')
-
-    @property
-    def time(self):
-        return str(timedelta(seconds=int(time() - self.start_time)))
