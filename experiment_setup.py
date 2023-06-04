@@ -72,10 +72,7 @@ def close_starts_curriculum(test_env):
 
 
 if __name__ == '__main__':
-    CONFIG.env.vectorized = False
     target_env = make_env()
-    CONFIG.env.vectorized = True
-
     wandb.init(project=WANDB_PROJECT, dir='wandb', config=CONFIG.as_dict(),  tags=["curriculum"])
     wandb.config['total_steps'] = CONFIG.airl.env_steps if CONFIG.curriculum_for_airl else CONFIG.ppo_train.env_steps
     increasing_grid_size_curriculum(target_env)

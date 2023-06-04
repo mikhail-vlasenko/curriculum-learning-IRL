@@ -46,7 +46,6 @@ class PPOConfig:
     nonlinear: str = 'relu'  # tanh, relu
     dimensions: List[int] = field(default_factory=lambda: [128, 128])
     simple_architecture: bool = True
-    test_episodes: int = 30
 
 
 @dataclass
