@@ -30,7 +30,17 @@ def test_policy(ppo, env, n_episodes):
     return reward_sum / n_episodes
 
 
-def main():
+def test_policy_wandb_helper(ppo, test_env, step, dataset):
+    if test_env is not None:
+        test_reward = test_policy(ppo, test_env, n_episodes=CONFIG.ppo.test_episodes)
+        wandb.log({'Reward': test_reward,
+                   'Current env reward': dataset.log_objectives().mean()}, step=step)
+    else:
+        wandb.log({'Reward': dataset.log_objectives().mean(),
+                   'Current env reward': dataset.log_objectives().mean()}, step=step)
+
+
+def main(logging_start_step=0, test_env=None):
     env = make_env()
 
     n_actions = env.action_space.n
@@ -48,6 +58,7 @@ def main():
     state, info = env.reset()
     states_tensor = torch.tensor(state).float().to(device)
 
+    step = 0
     for t in tqdm(range(int(CONFIG.ppo_train.env_steps / CONFIG.ppo.n_workers))):
         action, log_probs = ppo.act(states_tensor)
         next_state, reward, terminated, truncated, info = env.step(action)
@@ -58,11 +69,14 @@ def main():
         env.substitute_states(next_state)
 
         if train_ready:
+            step = t * CONFIG.ppo.n_workers + logging_start_step
+            test_policy_wandb_helper(ppo, test_env, step, dataset)
+
             update_policy(ppo, dataset, optimizer, CONFIG.ppo.gamma, CONFIG.ppo.epsilon, CONFIG.ppo.update_epochs,
                           entropy_reg=CONFIG.ppo.entropy_reg)
             wandb.log({'Reward': dataset.log_objectives().mean(),
                        'Returns': dataset.log_returns().mean(),
-                       'Lengths': dataset.log_lengths().mean()}, step=t * CONFIG.ppo.n_workers)
+                       'Lengths': dataset.log_lengths().mean()}, step=step)
 
             dataset.reset_trajectories()
 
@@ -76,11 +90,8 @@ def main():
     model_art.add_file(CONFIG.ppo_train.save_to)
     wandb.log_artifact(model_art)
 
-    model_code_art = wandb.Artifact('model_code', type='code')
-    model_code_art.add_file('rl_algos/ppo_from_airl.py')
-    wandb.log_artifact(model_code_art)
-
     env.close()
+    return step
 
 
 if __name__ == '__main__':

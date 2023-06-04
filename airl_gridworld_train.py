@@ -10,7 +10,7 @@ from rl_algos.ppo_from_airl import *
 import torch
 import pickle
 
-from train_ppo import test_policy
+from train_ppo import test_policy, test_policy_wandb_helper
 
 
 def init_models(env):
@@ -111,13 +111,7 @@ def main(logging_start_step=0, test_env=None):
             #         print(traj['states'][i][-1], end=' ')
             #     print()
             step = t * CONFIG.ppo.n_workers + logging_start_step
-            if test_env is not None:
-                test_reward = test_policy(ppo, test_env, n_episodes=CONFIG.ppo.test_episodes)
-                wandb.log({'Reward': test_reward,
-                           'Current env reward': dataset.log_objectives().mean()}, step=step)
-            else:
-                wandb.log({'Reward': dataset.log_objectives().mean(),
-                           'Current env reward': dataset.log_objectives().mean()}, step=step)
+            test_policy_wandb_helper(ppo, test_env, step, dataset)
 
             wandb.log({'Returns': dataset.log_returns().mean(),
                        'Lengths': dataset.log_lengths().mean()}, step=step)

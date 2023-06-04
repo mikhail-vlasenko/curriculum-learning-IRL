@@ -1,8 +1,13 @@
 import wandb
 
-from airl_gridworld_train import main
-from config import CONFIG, set_experiment_config
+from airl_gridworld_train import main as airl_main
+from train_ppo import main as ppo_main
+from config import CONFIG, set_experiment_config, set_curriculum_loading_paths, set_curriculum_steps
 from envs.env_factory import make_env
+
+
+main = airl_main if CONFIG.curriculum_for_airl else ppo_main
+WANDB_PROJECT = 'AIRL' if CONFIG.curriculum_for_airl else 'PPO'
 
 
 def increasing_grid_size_curriculum(test_env):
@@ -15,18 +20,14 @@ def increasing_grid_size_curriculum(test_env):
 
     last_trained_step = 0
 
-    wandb.init(project='AIRL', dir='wandb', config=CONFIG.as_dict(),  tags=["curriculum", "increasing_grid_size"])
     wandb.config['curriculum'] = 'increasing_grid_size'
     wandb.config['grid_sizes'] = grid_sizes
     wandb.config['max_steps'] = max_steps
-    wandb.config['total_steps'] = CONFIG.airl.env_steps
 
     for i in range(len(grid_sizes)):
         set_experiment_config(grid_size=grid_sizes[i], max_steps=max_steps[i], ppo_lr=lrs[i])
-        CONFIG.airl.env_steps = int(share_of_env_steps[i] * wandb.config['total_steps'])
-        if i > 0:
-            CONFIG.airl.ppo_load_from = CONFIG.airl.ppo_save_to
-            CONFIG.airl.disc_load_from = CONFIG.airl.disc_save_to
+        set_curriculum_steps(share_of_env_steps[i], wandb.config['total_steps'])
+        set_curriculum_loading_paths(i)
         last_trained_step = main(logging_start_step=last_trained_step, test_env=test_env)
 
     wandb.finish()
@@ -38,39 +39,33 @@ def positive_stripe_reward_curriculum(test_env):
 
     last_trained_step = 0
 
-    wandb.init(project='AIRL', dir='wandb', config=CONFIG.as_dict(), tags=["curriculum", "positive_stripe_reward"])
     wandb.config['curriculum'] = 'positive_stripe_reward'
     wandb.config['reward_configuration'] = reward_configuration
-    wandb.config['total_steps'] = CONFIG.airl.env_steps
 
     for i in range(len(reward_configuration)):
         set_experiment_config(reward_configuration=reward_configuration[i])
-        CONFIG.airl.env_steps = int(share_of_env_steps[i] * wandb.config['total_steps'])
-        if i > 0:
-            CONFIG.airl.ppo_load_from = CONFIG.airl.ppo_save_to
-            CONFIG.airl.disc_load_from = CONFIG.airl.disc_save_to
+        set_curriculum_steps(share_of_env_steps[i], wandb.config['total_steps'])
+        set_curriculum_loading_paths(i)
         last_trained_step = main(logging_start_step=last_trained_step, test_env=test_env)
 
     wandb.finish()
 
 
 def close_starts_curriculum(test_env):
-    share_of_env_steps = [0.2, 0.1, 0.7]
-    spawn_distance = [2, 3, -1]
+    share_of_env_steps = [0.1, 0.7]
+    spawn_distance = [2, -1]
 
     last_trained_step = 0
 
-    wandb.init(project='AIRL', dir='wandb', config=CONFIG.as_dict(), tags=["curriculum", "close_starts"])
     wandb.config['curriculum'] = 'close_starts'
-    wandb.config['total_steps'] = CONFIG.airl.env_steps
     wandb.config['shares_of_steps'] = share_of_env_steps
 
     for i in range(len(share_of_env_steps)):
         set_experiment_config(spawn_distance=spawn_distance[i])
-        CONFIG.airl.env_steps = int(share_of_env_steps[i] * wandb.config['total_steps'])
-        if i > 0:
-            CONFIG.airl.ppo_load_from = CONFIG.airl.ppo_save_to
-            CONFIG.airl.disc_load_from = CONFIG.airl.disc_save_to
+        set_curriculum_steps(share_of_env_steps[i], wandb.config['total_steps'])
+        set_curriculum_loading_paths(i)
+        if i == len(share_of_env_steps) - 1:
+            test_env = None
         last_trained_step = main(logging_start_step=last_trained_step, test_env=test_env)
 
     wandb.finish()
@@ -78,8 +73,11 @@ def close_starts_curriculum(test_env):
 
 if __name__ == '__main__':
     CONFIG.env.vectorized = False
-    test_env = make_env()
+    target_env = make_env()
     CONFIG.env.vectorized = True
-    # increasing_grid_size_curriculum(test_env)
-    # positive_stripe_reward_curriculum(test_env)
-    close_starts_curriculum(test_env)
+
+    wandb.init(project=WANDB_PROJECT, dir='wandb', config=CONFIG.as_dict(),  tags=["curriculum"])
+    wandb.config['total_steps'] = CONFIG.airl.env_steps if CONFIG.curriculum_for_airl else CONFIG.ppo_train.env_steps
+    increasing_grid_size_curriculum(target_env)
+    # positive_stripe_reward_curriculum(target_env)
+    # close_starts_curriculum(target_env)

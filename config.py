@@ -24,10 +24,11 @@ class PPOTrainConfig:
     """
     Config for training the expert PPO
     """
-    env_steps: int = 500000
-    load_from: str = 'saved_models/rew_per_tile_ppo_expert10.pt'
-    # load_from: str = None
-    save_to: str = f'saved_models/rew_per_tile_ppo_expert{EnvConfig.grid_size}.pt'
+    env_steps: int = 400000
+    # load_from: str = 'saved_models/rew_per_tile_ppo_expert10.pt'
+    load_from: str = None
+    # save_to: str = f'saved_models/rew_per_tile_ppo_expert{EnvConfig.grid_size}.pt'
+    save_to: str = f'saved_models/just_ppo.pt'
 
 
 @dataclass
@@ -56,7 +57,7 @@ class DemosConfig:
 
 @dataclass
 class AIRLConfig:
-    env_steps: int = 2000000  # total steps from training, even with curriculum
+    env_steps: int = 1000000  # total steps from training, even with curriculum
     expert_data_path: str = None
     optimizer_disc: str = 'adam'  # adam, sgd (with no momentum)
     freeze_ppo_weights: bool = False
@@ -87,6 +88,9 @@ class Config:
     demos: DemosConfig = field(default_factory=DemosConfig)
     airl: AIRLConfig = field(default_factory=AIRLConfig)
     discriminator: DiscriminatorConfig = field(default_factory=DiscriminatorConfig)
+
+    # if True, will train AIRL with curriculum in experiment_setup. Otherwise, will train ppo
+    curriculum_for_airl: bool = False
     device: torch.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     continued_ppo_training: bool = False
     continued_airl_training: bool = False
@@ -146,6 +150,22 @@ def set_experiment_config(
         CONFIG.ppo.lr = ppo_lr
     CONFIG.airl.expert_data_path = get_demo_name()
     check_config()
+
+
+def set_curriculum_loading_paths(i):
+    if i > 0:
+        if CONFIG.curriculum_for_airl:
+            CONFIG.airl.ppo_load_from = CONFIG.airl.ppo_save_to
+            CONFIG.airl.disc_load_from = CONFIG.airl.disc_save_to
+        else:
+            CONFIG.ppo_train.load_from = CONFIG.ppo_train.save_to
+
+
+def set_curriculum_steps(step_share, total_steps):
+    if CONFIG.curriculum_for_airl:
+        CONFIG.airl.env_steps = int(step_share * total_steps)
+    else:
+        CONFIG.ppo_train.env_steps = int(step_share * total_steps)
 
 
 def check_config():
