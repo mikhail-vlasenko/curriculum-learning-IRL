@@ -8,7 +8,7 @@ from envs.env_factory import make_env
 
 
 def test_policy(ppo, env):
-    dataset = TrajectoryDataset(batch_size=CONFIG.ppo.batch_size, n_workers=CONFIG.ppo.n_workers)
+    dataset = TrajectoryDataset(batch_size=CONFIG.env.max_steps * 100, n_workers=CONFIG.ppo.n_workers)
 
     state, info = env.reset()
     state_tensor = torch.tensor(state).float().to(device)
@@ -17,8 +17,9 @@ def test_policy(ppo, env):
     while not ready:
         action, log_probs = ppo.act(state_tensor)
         state, reward, terminated, truncated, _ = env.step(action)
-        state_tensor = torch.tensor(state).float().to(device)
         done = terminated | truncated
+        env.substitute_states(state)
+        state_tensor = torch.tensor(state).float().to(device)
 
         ready = dataset.write_tuple(dummy_state, action, reward, done, log_probs, logs=reward)
 

@@ -28,6 +28,8 @@ def increasing_grid_size_curriculum(test_env):
         set_experiment_config(grid_size=grid_sizes[i], max_steps=max_steps[i], ppo_lr=lrs[i])
         set_curriculum_steps(share_of_env_steps[i], wandb.config['total_steps'])
         set_curriculum_loading_paths(i)
+        if i == len(share_of_env_steps) - 1:
+            test_env = None
         last_trained_step = main(logging_start_step=last_trained_step, test_env=test_env)
 
     wandb.finish()
@@ -46,6 +48,8 @@ def positive_stripe_reward_curriculum(test_env):
         set_experiment_config(reward_configuration=reward_configuration[i])
         set_curriculum_steps(share_of_env_steps[i], wandb.config['total_steps'])
         set_curriculum_loading_paths(i)
+        if i == len(share_of_env_steps) - 1:
+            test_env = None
         last_trained_step = main(logging_start_step=last_trained_step, test_env=test_env)
 
     wandb.finish()

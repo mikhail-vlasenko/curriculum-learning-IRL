@@ -36,6 +36,7 @@ class VecEnv:
         done_list = []
         info_list = []
         for i in range(self.n_envs):
+            assert not self.dones[i], f'Env {i} is done, but step() was called.'
             obs_i, rew_i, terminated, truncated, info_i = self.env_list[i].step(actions[i])
             done_i = terminated | truncated
             self.dones[i] = done_i
