@@ -1,3 +1,5 @@
+import pickle
+import random
 from typing import List, Dict
 
 import torch
@@ -169,3 +171,20 @@ def update_policy(ppo: PPO, dataset: TrajectoryDataset, optimizer, gamma, epsilo
         optimizer.step()
 
     CONFIG.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+
+def load_expert_trajectories():
+    print(f'Using {CONFIG.demos.n_steps} expert steps from {CONFIG.airl.expert_data_path}')
+    expert_trajectories = pickle.load(open(CONFIG.airl.expert_data_path, 'rb'))
+    rng = random.Random(CONFIG.demos.demos_subset_seed)
+    rng.shuffle(expert_trajectories)
+    current_steps = 0
+    last_index = 0
+    for i, traj in enumerate(expert_trajectories):
+        current_steps += len(traj['actions'])
+        if current_steps > CONFIG.demos.n_steps:
+            last_index = i
+            break
+    # last trajectory is not included for consistency with make_ppo_demos.py
+    expert_trajectories = expert_trajectories[:last_index]
+    return expert_trajectories

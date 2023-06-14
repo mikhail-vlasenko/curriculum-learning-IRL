@@ -56,7 +56,7 @@ def positive_stripe_reward_curriculum(test_env):
 
 
 def close_starts_curriculum(test_env):
-    share_of_env_steps = [0.1, 0.7]
+    share_of_env_steps = [0.3, 0.7]
     spawn_distance = [2, -1]
 
     last_trained_step = 0

@@ -24,7 +24,7 @@ class PPOTrainConfig:
     """
     Config for training the expert PPO
     """
-    env_steps: int = 400000
+    env_steps: int = 600000
     # load_from: str = 'saved_models/rew_per_tile_ppo_expert10.pt'
     load_from: str = None
     # save_to: str = f'saved_models/rew_per_tile_ppo_expert{EnvConfig.grid_size}.pt'
@@ -51,6 +51,8 @@ class PPOConfig:
 @dataclass
 class DemosConfig:
     n_steps: int = 50000
+    # if n_steps is less than the number of steps in the loaded file, this determines which subset is used
+    demos_subset_seed: int = 42
     load_from: str = f'saved_models/rew_per_tile_ppo_expert{EnvConfig.grid_size}.pt'
 
 
@@ -89,7 +91,7 @@ class Config:
     discriminator: DiscriminatorConfig = field(default_factory=DiscriminatorConfig)
 
     # if True, will train AIRL with curriculum in experiment_setup. Otherwise, will train ppo
-    curriculum_for_airl: bool = False
+    curriculum_for_airl: bool = True
     device: torch.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     continued_ppo_training: bool = False
     continued_airl_training: bool = False

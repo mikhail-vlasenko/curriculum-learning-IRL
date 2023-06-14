@@ -78,8 +78,7 @@ def main(logging_start_step=0, test_env=None):
     """
     # CONFIG.ppo.entropy_reg = 0.0
 
-    print(f'Using data from {CONFIG.airl.expert_data_path}')
-    expert_trajectories = pickle.load(open(CONFIG.airl.expert_data_path, 'rb'))
+    expert_trajectories = load_expert_trajectories()
 
     # Create Environment
     env: VecEnv = make_env()
@@ -104,12 +103,6 @@ def main(logging_start_step=0, test_env=None):
         next_state_tensor = torch.tensor(next_state).to(device).float()
 
         if train_ready:
-            # for traj in dataset.trajectories:
-            #     print(traj['rewards'])
-            #     print(sum(traj['rewards']))
-            #     for i in range(len(traj['states'])):
-            #         print(traj['states'][i][-1], end=' ')
-            #     print()
             step = t * CONFIG.ppo.n_workers + logging_start_step
             test_policy_wandb_helper(ppo, test_env, step, dataset)
 
