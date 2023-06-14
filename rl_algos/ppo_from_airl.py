@@ -182,9 +182,12 @@ def load_expert_trajectories():
     last_index = 0
     for i, traj in enumerate(expert_trajectories):
         current_steps += len(traj['actions'])
-        if current_steps > CONFIG.demos.n_steps:
+        if current_steps >= CONFIG.demos.n_steps:
             last_index = i
             break
+    if last_index == 0:
+        print(f'not enough expert data, using the entire dataset ({current_steps})')
+        return expert_trajectories
     # last trajectory is not included for consistency with make_ppo_demos.py
     expert_trajectories = expert_trajectories[:last_index]
     return expert_trajectories
