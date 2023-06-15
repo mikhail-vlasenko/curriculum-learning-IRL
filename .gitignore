@@ -1,6 +1,7 @@
 saved_models/
 demonstrations/
 wandb/
+graph_data/
 venv/
 test.py
 remove_notes.py
