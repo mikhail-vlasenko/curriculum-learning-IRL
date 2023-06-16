@@ -75,6 +75,27 @@ def close_starts_curriculum(test_env):
     wandb.finish()
 
 
+def sequential_curriculum(test_env):
+    share_of_env_steps = [0.05] * 10
+    share_of_env_steps.append(0.5)
+    max_steps = [1, 2, 4, 6, 8, 10, 12, 15, 20, 25, 30]
+
+    last_trained_step = 0
+
+    wandb.config['curriculum'] = 'sequential'
+    wandb.config['shares_of_steps'] = share_of_env_steps
+
+    for i in range(len(share_of_env_steps)):
+        set_experiment_config(max_steps=max_steps[i])
+        set_curriculum_steps(share_of_env_steps[i], wandb.config['total_steps'])
+        set_curriculum_loading_paths(i)
+        if i == len(share_of_env_steps) - 1:
+            test_env = None
+        last_trained_step = main(logging_start_step=last_trained_step, test_env=test_env)
+
+    wandb.finish()
+
+
 if __name__ == '__main__':
     target_env = make_env()
     wandb.init(project=WANDB_PROJECT, dir='wandb', config=CONFIG.as_dict(),  tags=["curriculum"])

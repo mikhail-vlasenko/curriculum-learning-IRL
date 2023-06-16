@@ -56,18 +56,21 @@ def process_and_plot(
 
     ax.legend()
     ax.set_title(title)
+    ax.set_xlabel('Step')
+    ax.set_ylabel('Reward')
     plt.show()
     return df, processed_columns
 
 
 def main():
     df = pd.read_csv('graph_data/fixed_airl.csv')
-    old_runs = [121, 122, 123]
-    new_runs = [162, 163, 166]
     smoothing_window = 10
 
     df = clean_df(df)
 
+    # fixed airl graph
+    old_runs = [121, 122, 123]
+    new_runs = [162, 163, 166]
     run_groups = [old_runs, new_runs]
     group_names = ['original implementation', 'fixed end reward estimation']
 
