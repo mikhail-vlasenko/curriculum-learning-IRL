@@ -1,4 +1,6 @@
 import os
+from typing import List
+
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -17,7 +19,8 @@ def clean_df(df):
 
 def process_and_plot(
         df, run_groups, group_names,
-        smoothing_window=5, title='True reward in the environment'
+        smoothing_window=5, title='True reward in the environment',
+        vertical_lines: List[int] = [],
 ):
     processed_columns = []
     means = []
@@ -50,9 +53,14 @@ def process_and_plot(
 
     # Plot
     fig, ax = plt.subplots()
+    fig.set_dpi(200)
+    fig.set_size_inches(10, 6)
     for mean, std, name in zip(means, stds, group_names):
         ax.plot(df['Step'], df[mean], label=f'{name}')
         ax.fill_between(df['Step'], df[mean] - df[std], df[mean] + df[std], alpha=0.5)
+
+    for line in vertical_lines:
+        ax.axvline(line, color='black', linestyle='--')
 
     ax.legend()
     ax.set_title(title)
@@ -63,18 +71,23 @@ def process_and_plot(
 
 
 def main():
-    df = pd.read_csv('graph_data/fixed_airl.csv')
+    # df = pd.read_csv('graph_data/fixed_airl.csv')
+    # old_runs = [121, 122, 123]
+    # new_runs = [162, 163, 166]
+    # group_names = ['original implementation', 'fixed end reward estimation']
     smoothing_window = 10
 
+    df = pd.read_csv('graph_data/increaseing_grid_size.csv')
+    old_runs = [198, 191, 192, 162, 163]
+    new_runs = [170, 172, 173, 194, 195]
+    lines = [300000]
+    df = df[df['Step'] <= 1000000]
     df = clean_df(df)
+    group_names = ['no CL', '5 -> 10 grid size (CL)']
 
-    # fixed airl graph
-    old_runs = [121, 122, 123]
-    new_runs = [162, 163, 166]
     run_groups = [old_runs, new_runs]
-    group_names = ['original implementation', 'fixed end reward estimation']
 
-    process_and_plot(df, run_groups, group_names, smoothing_window)
+    process_and_plot(df, run_groups, group_names, smoothing_window, vertical_lines=lines)
 
 
 if __name__ == '__main__':
