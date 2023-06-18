@@ -76,9 +76,9 @@ def close_starts_curriculum(test_env):
 
 
 def sequential_curriculum(test_env):
-    share_of_env_steps = [0.05] * 10
-    share_of_env_steps.append(0.5)
-    max_steps = [1, 2, 4, 6, 8, 10, 12, 15, 20, 25, 30]
+    share_of_env_steps = [0.06] * 9
+    share_of_env_steps.append(0.46)
+    max_steps = [2, 4, 6, 8, 10, 12, 15, 20, 25, 30]
 
     last_trained_step = 0
 
@@ -100,6 +100,7 @@ if __name__ == '__main__':
     target_env = make_env()
     wandb.init(project=WANDB_PROJECT, dir='wandb', config=CONFIG.as_dict(),  tags=["curriculum"])
     wandb.config['total_steps'] = CONFIG.airl.env_steps if CONFIG.curriculum_for_airl else CONFIG.ppo_train.env_steps
-    increasing_grid_size_curriculum(target_env)
+    # increasing_grid_size_curriculum(target_env)
     # positive_stripe_reward_curriculum(target_env)
     # close_starts_curriculum(target_env)
+    sequential_curriculum(target_env)

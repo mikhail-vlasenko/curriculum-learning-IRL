@@ -8,7 +8,7 @@ from envs.env_factory import make_env
 
 
 def test_policy(ppo, env):
-    dataset = TrajectoryDataset(batch_size=CONFIG.env.max_steps * 100, n_workers=CONFIG.ppo.n_workers)
+    dataset = TrajectoryDataset(batch_size=env.env_list[0].max_steps * 100, n_workers=CONFIG.ppo.n_workers)
 
     state, info = env.reset()
     state_tensor = torch.tensor(state).float().to(device)

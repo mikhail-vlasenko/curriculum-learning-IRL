@@ -54,7 +54,7 @@ def process_and_plot(
     # Plot
     fig, ax = plt.subplots()
     fig.set_dpi(200)
-    fig.set_size_inches(10, 6)
+    fig.set_size_inches(8, 6)
     for mean, std, name in zip(means, stds, group_names):
         ax.plot(df['Step'], df[mean], label=f'{name}')
         ax.fill_between(df['Step'], df[mean] - df[std], df[mean] + df[std], alpha=0.5)
