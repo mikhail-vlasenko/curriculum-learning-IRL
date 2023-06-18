@@ -93,8 +93,8 @@ class Config:
     # if True, will train AIRL with curriculum in experiment_setup. Otherwise, will train ppo
     curriculum_for_airl: bool = True
     device: torch.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    continued_ppo_training: bool = False
-    continued_airl_training: bool = False
+    continued_ppo_training: bool = False  # is set automatically
+    continued_airl_training: bool = False  # is set automatically
 
     def as_dict(self):
         return asdict(self)
