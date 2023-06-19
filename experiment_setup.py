@@ -12,7 +12,7 @@ WANDB_PROJECT = 'AIRL' if CONFIG.curriculum_for_airl else 'PPO'
 
 def increasing_grid_size_curriculum(test_env):
     # todo: dynamically trigger next env when trained on current env
-    share_of_env_steps = [0.3, 0.7]
+    share_of_env_steps = [0.1, 0.9]
     grid_sizes = [5, 10]
     # max_steps = [15, 45]
     max_steps = [15, 30]
@@ -32,8 +32,6 @@ def increasing_grid_size_curriculum(test_env):
             test_env = None
         last_trained_step = main(logging_start_step=last_trained_step, test_env=test_env)
 
-    wandb.finish()
-
 
 def positive_stripe_reward_curriculum(test_env):
     share_of_env_steps = [0.3, 0.7]
@@ -52,8 +50,6 @@ def positive_stripe_reward_curriculum(test_env):
             test_env = None
         last_trained_step = main(logging_start_step=last_trained_step, test_env=test_env)
 
-    wandb.finish()
-
 
 def close_starts_curriculum(test_env):
     share_of_env_steps = [0.3, 0.7]
@@ -71,8 +67,6 @@ def close_starts_curriculum(test_env):
         if i == len(share_of_env_steps) - 1:
             test_env = None
         last_trained_step = main(logging_start_step=last_trained_step, test_env=test_env)
-
-    wandb.finish()
 
 
 def sequential_curriculum(test_env):
@@ -93,14 +87,13 @@ def sequential_curriculum(test_env):
             test_env = None
         last_trained_step = main(logging_start_step=last_trained_step, test_env=test_env)
 
-    wandb.finish()
-
 
 if __name__ == '__main__':
     target_env = make_env()
     wandb.init(project=WANDB_PROJECT, dir='wandb', config=CONFIG.as_dict(),  tags=["curriculum"])
     wandb.config['total_steps'] = CONFIG.airl.env_steps if CONFIG.curriculum_for_airl else CONFIG.ppo_train.env_steps
-    # increasing_grid_size_curriculum(target_env)
+    increasing_grid_size_curriculum(target_env)
     # positive_stripe_reward_curriculum(target_env)
     # close_starts_curriculum(target_env)
-    sequential_curriculum(target_env)
+    # sequential_curriculum(target_env)
+    wandb.finish()

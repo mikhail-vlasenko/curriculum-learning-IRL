@@ -13,6 +13,14 @@ def clean_df(df):
         if "__MIN" not in c and "__MAX" not in c:
             columns.append(c)
     df = df[columns]
+
+    # useful_columns = []
+    # for c in df.columns:
+    #     for run_id in useful_runs:
+    #         if str(run_id) in c:
+    #             useful_columns.append(c)
+    # df = df[useful_columns]
+
     df = df.fillna(method='ffill')
     return df
 
@@ -71,22 +79,32 @@ def process_and_plot(
 
 
 def main():
-    # df = pd.read_csv('../graph_data/fixed_airl.csv')
-    # old_runs = [121, 122, 123]
-    # new_runs = [162, 163, 166]
-    # group_names = ['original implementation', 'fixed end reward estimation']
     smoothing_window = 10
 
+    # lines = []
+    # df = pd.read_csv('../graph_data/fixed_airl.csv')
+    # old_runs = [121, 122, 123]
+    # new_runs = [203, 204, 210]
+    # group_names = ['original implementation', 'fixed end reward estimation']
+
     df = pd.read_csv('../graph_data/increaseing_grid_size.csv')
-    old_runs = [198, 191, 192, 162, 163]
-    new_runs = [170, 172, 173, 194, 195]
-    lines = [300000]
+    old_runs = [203, 204, 210]
+    # ------
+    # new_runs = [194, 195, 196]
+    # lines = [300000]
+
+    # new_runs = [206, 208, 209]
+    # lines = [200000]
+
+    new_runs = [211, 212, 213]
+    lines = [150000]
+    # ------
     df = df[df['Step'] <= 1000000]
-    df = clean_df(df)
     group_names = ['no CL', '5 -> 10 grid size (CL)']
 
     run_groups = [old_runs, new_runs]
 
+    df = clean_df(df)
     process_and_plot(df, run_groups, group_names, smoothing_window, vertical_lines=lines)
 
 
