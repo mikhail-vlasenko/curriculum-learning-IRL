@@ -71,13 +71,13 @@ def process_and_plot(
 
 
 def main():
-    # df = pd.read_csv('graph_data/fixed_airl.csv')
+    # df = pd.read_csv('../graph_data/fixed_airl.csv')
     # old_runs = [121, 122, 123]
     # new_runs = [162, 163, 166]
     # group_names = ['original implementation', 'fixed end reward estimation']
     smoothing_window = 10
 
-    df = pd.read_csv('graph_data/increaseing_grid_size.csv')
+    df = pd.read_csv('../graph_data/increaseing_grid_size.csv')
     old_runs = [198, 191, 192, 162, 163]
     new_runs = [170, 172, 173, 194, 195]
     lines = [300000]
