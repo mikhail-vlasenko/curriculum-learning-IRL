@@ -12,7 +12,7 @@ WANDB_PROJECT = 'AIRL' if CONFIG.curriculum_for_airl else 'PPO'
 
 def increasing_grid_size_curriculum(test_env):
     # todo: dynamically trigger next env when trained on current env
-    share_of_env_steps = [0.1, 0.9]
+    share_of_env_steps = [0.3, 0.7]
     grid_sizes = [5, 10]
     # max_steps = [15, 45]
     max_steps = [15, 30]

@@ -7,6 +7,8 @@ import numpy as np
 import pandas as pd
 
 
+default_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+                  '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 def clean_df(df):
     columns = []
     for c in df.columns:
@@ -67,8 +69,8 @@ def process_and_plot(
         ax.plot(df['Step'], df[mean], label=f'{name}')
         ax.fill_between(df['Step'], df[mean] - df[std], df[mean] + df[std], alpha=0.5)
 
-    for line in vertical_lines:
-        ax.axvline(line, color='black', linestyle='--')
+    for i, line in enumerate(vertical_lines):
+        ax.axvline(line, color=default_colors[i], linestyle='--')
 
     ax.legend()
     ax.set_title(title)
@@ -79,30 +81,40 @@ def process_and_plot(
 
 
 def main():
-    smoothing_window = 10
+    smoothing_window = 20
 
-    # lines = []
+    lines = []
     # df = pd.read_csv('../graph_data/fixed_airl.csv')
     # old_runs = [121, 122, 123]
     # new_runs = [203, 204, 210]
     # group_names = ['original implementation', 'fixed end reward estimation']
 
-    df = pd.read_csv('../graph_data/increaseing_grid_size.csv')
-    old_runs = [203, 204, 210]
-    # ------
-    # new_runs = [194, 195, 196]
-    # lines = [300000]
-
-    # new_runs = [206, 208, 209]
-    # lines = [200000]
-
-    new_runs = [211, 212, 213]
-    lines = [150000]
-    # ------
-    df = df[df['Step'] <= 1000000]
+    df = pd.read_csv('../graph_data/different_swap_point.csv')
     group_names = ['no CL', '5 -> 10 grid size (CL)']
 
-    run_groups = [old_runs, new_runs]
+    old_runs = [203, 204, 210]
+    run_groups = []
+    group_names = []
+    # ------
+    run_groups.append([214, 215, 216])
+    lines.append(100000)
+    group_names.append('env swap at 100k')
+
+    run_groups.append([211, 212, 213])
+    lines.append(150000)
+    group_names.append('env swap at 150k')
+
+    run_groups.append([206, 208, 209])
+    lines.append(200000)
+    group_names.append('env swap at 200k')
+
+    run_groups.append([194, 195, 217])
+    lines.append(300000)
+    group_names.append('env swap at 300k')
+    # ------
+    df = df[df['Step'] <= 500000]
+
+    # run_groups = [old_runs, new_runs]
 
     df = clean_df(df)
     process_and_plot(df, run_groups, group_names, smoothing_window, vertical_lines=lines)
