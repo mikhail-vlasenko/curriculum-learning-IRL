@@ -32,8 +32,9 @@ def main():
                       do_constant_folding=True,  # whether to execute constant folding for optimization
                       input_names=['state', 'next_state', 'gamma'],  # the model's input names
                       output_names=['advantage'],  # the model's output names
-                      dynamic_axes={'input': {0: 'batch_size'},  # variable length axes
-                                    'output': {0: 'batch_size'}})
+                      dynamic_axes={'state': {0: 'batch_size'},  # variable length axes
+                                    'next_state': {0: 'batch_size'},
+                                    'advantage': {0: 'batch_size'}})
 
 
 if __name__ == '__main__':

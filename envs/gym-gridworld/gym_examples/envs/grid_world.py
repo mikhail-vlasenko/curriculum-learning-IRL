@@ -1,4 +1,5 @@
 import random
+import time
 
 from gymnasium import spaces, Env
 import pygame
@@ -21,7 +22,7 @@ class GridWorldEnv(Env):
             spawn_distance: int = -1,
     ):
         self.size = grid_size  # The size of the square grid
-        self.window_size = 512  # The size of the PyGame window
+        self.window_size = 1024  # The size of the PyGame window
         self.obs_dist = obs_dist
         self.reward_configuration = reward_configuration
         self.spawn_distance = spawn_distance
@@ -281,14 +282,14 @@ class GridWorldEnv(Env):
         for x in range(self.size + 1):
             pygame.draw.line(
                 canvas,
-                0,
+                (0, 0, 0),
                 (0, pix_square_size * x),
                 (self.window_size, pix_square_size * x),
                 width=3,
             )
             pygame.draw.line(
                 canvas,
-                0,
+                (0, 0, 0),
                 (pix_square_size * x, 0),
                 (pix_square_size * x, self.window_size),
                 width=3,
@@ -303,6 +304,8 @@ class GridWorldEnv(Env):
             self.window.blit(label, (10, 10))
             pygame.event.pump()
             pygame.display.update()
+            if self._time == 0:
+                pygame.image.save(self.window, f"env_screenshot{round(time.time())}.png")
 
             # We need to ensure that human-rendering occurs at the predefined framerate.
             # The following line will automatically add a delay to keep the framerate stable.
