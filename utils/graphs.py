@@ -74,6 +74,9 @@ def process_and_plot(
     for i, line in enumerate(vertical_lines):
         ax.axvline(line, color=default_colors[i], linestyle='--')
 
+    # ax.axhline(-1.5, color='black', linestyle='--', alpha=0.5)
+    # ax.axhline(3, color='black', linestyle='--', alpha=0.5)
+
     ax.legend()
     ax.set_title(title)
     ax.set_xlabel('Training step')
@@ -91,10 +94,13 @@ def main():
     # df = pd.read_csv('../graph_data/fixed_airl.csv')
     # old_runs = [121, 122, 123]
     # new_runs = [203, 204, 210]
-    # group_names = ['using code from Peschl (2022)', 'fixed end reward estimation']
+    # group_names = ['using code from Peschl (2022)', 'corrected end reward estimation']
+    # run_groups = [old_runs, new_runs]
+    # title = 'Impact of end reward estimation correction on true returns'
 
     df = pd.read_csv('../graph_data/different_swap_point.csv')
     group_names = ['no CL', '5 -> 10 grid size (CL)']
+    title = 'Non-discounted true returns in the target environment'
 
     old_runs = [203, 204, 210]
     run_groups = []
@@ -118,10 +124,8 @@ def main():
     # ------
     df = df[df['Step'] <= 500000]
 
-    # run_groups = [old_runs, new_runs]
-
     df = clean_df(df)
-    process_and_plot(df, run_groups, group_names, smoothing_window, vertical_lines=lines)
+    process_and_plot(df, run_groups, group_names, smoothing_window, vertical_lines=lines, title=title)
 
 
 if __name__ == '__main__':
