@@ -9,6 +9,8 @@ import pandas as pd
 
 default_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
                   '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
+
+
 def clean_df(df):
     columns = []
     for c in df.columns:
@@ -29,7 +31,7 @@ def clean_df(df):
 
 def process_and_plot(
         df, run_groups, group_names,
-        smoothing_window=5, title='True reward in the environment',
+        smoothing_window=5, title='Non-discounted true returns in the target environment',
         vertical_lines: List[int] = [],
 ):
     processed_columns = []
@@ -74,8 +76,8 @@ def process_and_plot(
 
     ax.legend()
     ax.set_title(title)
-    ax.set_xlabel('Step')
-    ax.set_ylabel('Reward')
+    ax.set_xlabel('Training step')
+    ax.set_ylabel('Returns')
     plt.show()
     return df, processed_columns
 

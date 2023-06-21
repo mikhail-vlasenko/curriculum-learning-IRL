@@ -50,9 +50,9 @@ class PPOConfig:
 
 @dataclass
 class DemosConfig:
-    n_steps: int = 50000
+    n_steps: int = 100
     # if n_steps is less than the number of steps in the loaded file, this determines which subset is used
-    demos_subset_seed: int = 42
+    demos_subset_seed: int = 123
     load_from: str = f'saved_models/rew_per_tile_ppo_expert{EnvConfig.grid_size}.pt'
 
 
