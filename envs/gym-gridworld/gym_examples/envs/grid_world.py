@@ -188,6 +188,8 @@ class GridWorldEnv(Env):
             #     [0,  1, 0],
             # ])
             pass
+        elif self.reward_configuration == '+-0.5':
+            self.rewards = np.sign(self.rewards) * 0.5
         elif self.reward_configuration == 'default':
             pass
         else:
