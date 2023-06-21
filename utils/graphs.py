@@ -83,13 +83,15 @@ def process_and_plot(
 
 
 def main():
+    plt.rcParams.update({'font.size': 15})
+
     smoothing_window = 20
 
     lines = []
     # df = pd.read_csv('../graph_data/fixed_airl.csv')
     # old_runs = [121, 122, 123]
     # new_runs = [203, 204, 210]
-    # group_names = ['original implementation', 'fixed end reward estimation']
+    # group_names = ['using code from Peschl (2022)', 'fixed end reward estimation']
 
     df = pd.read_csv('../graph_data/different_swap_point.csv')
     group_names = ['no CL', '5 -> 10 grid size (CL)']
