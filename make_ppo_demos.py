@@ -67,5 +67,9 @@ if __name__ == '__main__':
         print('Saving to demonstrations/from_airl_policy.pk')
         pickle.dump(dataset, open('demonstrations/from_airl_policy.pk', 'wb'))
     else:
-        print(f'Saving to {get_demo_name()}')
-        pickle.dump(dataset, open(get_demo_name(), 'wb'))
+        if CONFIG.demos.save_path is None:
+            print(f'Saving to {get_demo_name()}')
+            pickle.dump(dataset, open(get_demo_name(), 'wb'))
+        else:
+            print(f'Saving to {CONFIG.demos.save_path}')
+            pickle.dump(dataset, open(CONFIG.demos.save_path, 'wb'))

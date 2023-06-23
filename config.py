@@ -24,7 +24,7 @@ class PPOTrainConfig:
     """
     Config for training the expert PPO
     """
-    env_steps: int = 600000
+    env_steps: int = 400000
     # load_from: str = 'saved_models/rew_per_tile_ppo_expert10.pt'
     load_from: str = None
     # save_to: str = f'saved_models/rew_per_tile_ppo_expert{EnvConfig.grid_size}.pt'
@@ -50,10 +50,12 @@ class PPOConfig:
 
 @dataclass
 class DemosConfig:
-    n_steps: int = 100
+    n_steps: int = 50000
     # if n_steps is less than the number of steps in the loaded file, this determines which subset is used
-    demos_subset_seed: int = 123
+    demos_subset_seed: int = 42
     load_from: str = f'saved_models/rew_per_tile_ppo_expert{EnvConfig.grid_size}.pt'
+    # load_from: str = f'saved_models/per_tile_0_rew_non-expert_ppo.pt'
+    save_path: str = None  # None substitutes result of get_demo_name()
 
 
 @dataclass
@@ -135,6 +137,8 @@ def set_experiment_config(
         reward_configuration: str = None,
         spawn_distance: int = None,
         ppo_lr: float = None,
+        demos_n_steps: int = None,
+        expert_data_path: str = None
 ) -> None:
     print('Setting experiment config')
     if grid_size is not None:
@@ -149,7 +153,12 @@ def set_experiment_config(
         CONFIG.env.spawn_distance = spawn_distance
     if ppo_lr is not None:
         CONFIG.ppo.lr = ppo_lr
-    CONFIG.airl.expert_data_path = get_demo_name()
+    if demos_n_steps is not None:
+        CONFIG.demos.n_steps = demos_n_steps
+    if expert_data_path is not None:
+        CONFIG.airl.expert_data_path = expert_data_path
+    else:
+        CONFIG.airl.expert_data_path = get_demo_name()
     check_config()
 
 
