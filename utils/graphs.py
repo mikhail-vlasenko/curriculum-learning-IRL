@@ -48,6 +48,8 @@ def process_and_plot(
                 if str(run_id) in c:
                     group_columns.append(c)
 
+        assert len(group_columns) == len(group), f'Could not find all runs in group {group}'
+
         # Smooth group columns
         for c in group_columns:
             df[c] = df[c].rolling(smoothing_window).mean()
@@ -74,8 +76,8 @@ def process_and_plot(
     if len(vertical_lines) > 1:
         for i, line in enumerate(vertical_lines):
             ax.axvline(line, color=default_colors[i], linestyle='--')
-    else:
-        ax.axvline(vertical_lines[0], color='black', linestyle='--')
+    elif len(vertical_lines) > 0:
+        ax.axvline(vertical_lines[0], color=default_colors[1], linestyle='--')
 
     # ax.axhline(-1.5, color='black', linestyle='--', alpha=0.5)
     # ax.axhline(3, color='black', linestyle='--', alpha=0.5)
@@ -83,7 +85,7 @@ def process_and_plot(
     ax.legend()
     ax.set_title(title)
     ax.set_xlabel('Training step')
-    ax.set_ylabel('Returns')
+    ax.set_ylabel('True Returns')
     plt.show()
     return df, processed_columns
 
@@ -99,30 +101,42 @@ def fixed_airl():
     return df, run_groups, group_names, title, lines
 
 
+def cl_vs_no_cl():
+    df = pd.read_csv('../graph_data/cl_vs_no_cl200k.csv')
+    title = 'Non-discounted true returns for baseline and our approach'
+
+    baseline = [203, 204, 210]
+    cl = [206, 208, 209]
+    run_groups = [baseline, cl]
+    group_names = ['no CL (baseline)', 'increasing grid size (our)']
+    lines = [200000]
+    df = df[df['Step'] <= 1000000]
+    return df, run_groups, group_names, title, lines
+
+
 def diff_swap_point():
     df = pd.read_csv('../graph_data/different_swap_point.csv')
-    title = 'Non-discounted true returns in the target environment'
+    title = 'Returns for different values of x in Equation 2'
 
-    # old_runs = [203, 204, 210]
     lines = []
     run_groups = []
     group_names = []
     # ------
     run_groups.append([214, 215, 216])
     lines.append(100000)
-    group_names.append('env swap at 100k')
+    group_names.append('x = 100000')
 
     run_groups.append([211, 212, 213])
     lines.append(150000)
-    group_names.append('env swap at 150k')
+    group_names.append('x = 150000')
 
     run_groups.append([206, 208, 209])
     lines.append(200000)
-    group_names.append('env swap at 200k')
+    group_names.append('x = 200000')
 
     run_groups.append([194, 195, 217])
     lines.append(300000)
-    group_names.append('env swap at 300k')
+    group_names.append('x = 300000')
     # ------
     df = df[df['Step'] <= 500000]
     return df, run_groups, group_names, title, lines
@@ -130,24 +144,38 @@ def diff_swap_point():
 
 def fifty_demos():
     df = pd.read_csv('../graph_data/fifty_demos.csv')
-    title = 'Non-discounted true returns in the target environment'
+    title = 'Curriculum with demonstrations in another environment'
 
-    lines = [200000]
     baseline = [224, 228, 229, 230, 231]
     cl = [225, 226, 227, 232, 233]
     run_groups = [baseline, cl]
-    group_names = ['baseline', 'CL']
+    group_names = ['just 50 expert steps', 'CL with 50 expert steps in small env']
+    lines = [200000]
+    return df, run_groups, group_names, title, lines
+
+
+def worse_expert():
+    df = pd.read_csv('../graph_data/worse_expert.csv')
+    title = 'Curriculum with less optimal demonstrations'
+
+    baseline = [224, 228, 229, 230, 231]
+    cl = [237, 238, 239, 240, 241]
+    run_groups = [baseline, cl]
+    group_names = ['just 50 expert steps', 'CL with 500 non-expert steps']
+    lines = [500000]
     return df, run_groups, group_names, title, lines
 
 
 def main():
     plt.rcParams.update({'font.size': 15})
 
-    smoothing_window = 20
+    smoothing_window = 30
 
     # df, run_groups, group_names, title, lines = fixed_airl()
-    # df, run_groups, group_names, title, lines = diff_swap_point()
-    df, run_groups, group_names, title, lines = fifty_demos()
+    # df, run_groups, group_names, title, lines = cl_vs_no_cl()
+    df, run_groups, group_names, title, lines = diff_swap_point()
+    # df, run_groups, group_names, title, lines = fifty_demos()
+    # df, run_groups, group_names, title, lines = worse_expert()
 
     df = clean_df(df)
     process_and_plot(df, run_groups, group_names, smoothing_window, vertical_lines=lines, title=title)
