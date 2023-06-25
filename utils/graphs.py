@@ -148,8 +148,9 @@ def fifty_demos():
 
     baseline = [224, 228, 229, 230, 231]
     cl = [225, 226, 227, 232, 233]
-    run_groups = [baseline, cl]
-    group_names = ['just 50 expert steps', 'CL with 50 expert steps in small env']
+    hundred_demos = [220, 254, 255, 256, 257]
+    run_groups = [baseline, cl, hundred_demos]
+    group_names = ['just 50 expert steps', 'CL with 50 expert steps in small env', 'just 100 expert steps']
     lines = [200000]
     return df, run_groups, group_names, title, lines
 
@@ -160,8 +161,9 @@ def worse_expert():
 
     baseline = [224, 228, 229, 230, 231]
     cl = [237, 238, 239, 240, 241]
-    run_groups = [baseline, cl]
-    group_names = ['just 50 expert steps', 'CL with 500 non-expert steps']
+    non_expert_demos = [242, 243, 244, 252, 253]
+    run_groups = [baseline, cl, non_expert_demos]
+    group_names = ['just 50 expert steps', 'CL with 500 non-expert steps', 'just 500 non-expert steps']
     lines = [500000]
     return df, run_groups, group_names, title, lines
 
@@ -169,13 +171,13 @@ def worse_expert():
 def main():
     plt.rcParams.update({'font.size': 15})
 
-    smoothing_window = 30
+    smoothing_window = 1
 
     # df, run_groups, group_names, title, lines = fixed_airl()
     # df, run_groups, group_names, title, lines = cl_vs_no_cl()
-    df, run_groups, group_names, title, lines = diff_swap_point()
+    # df, run_groups, group_names, title, lines = diff_swap_point()
     # df, run_groups, group_names, title, lines = fifty_demos()
-    # df, run_groups, group_names, title, lines = worse_expert()
+    df, run_groups, group_names, title, lines = worse_expert()
 
     df = clean_df(df)
     process_and_plot(df, run_groups, group_names, smoothing_window, vertical_lines=lines, title=title)

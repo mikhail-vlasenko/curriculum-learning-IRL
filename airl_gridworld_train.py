@@ -153,11 +153,11 @@ def main(logging_start_step=0, test_env=None):
 
 
 if __name__ == '__main__':
-    # set_experiment_config(grid_size=15, max_steps=-1)
     if CONFIG.airl.expert_data_path is None:
         CONFIG.airl.expert_data_path = get_demo_name()
     tags = ['single_dataset']
     if CONFIG.airl.disc_load_from is not None or CONFIG.airl.ppo_load_from is not None:
         tags.append('continued_training')
+    # set_experiment_config(expert_data_path='demonstrations/ppo_demos_size-10_tile-reward_reward-conf-default_reward0.pk', demos_n_steps=500)
     wandb.init(project='AIRL', dir='wandb', config=CONFIG.as_dict(), tags=tags)
     main()
