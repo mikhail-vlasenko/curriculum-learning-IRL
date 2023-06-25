@@ -168,6 +168,35 @@ def worse_expert():
     return df, run_groups, group_names, title, lines
 
 
+def sequential():
+    df = pd.read_csv('../graph_data/sequential_cl.csv')
+    title = 'Non-discounted true returns for sequential curriculum'
+
+    baseline = [203, 204, 210]
+    cl = [202, 262, 263]
+    run_groups = [baseline, cl]
+    group_names = ['no CL (baseline)', 'sequential curriculum']
+    lines = [int(i * 0.06 * 1e6) for i in range(1, 10)]
+    print(lines)
+    df = df[df['Step'] <= 1000000]
+    return df, run_groups, group_names, title, lines
+
+
+def other_curricula():
+    df = pd.read_csv('../graph_data/other_curricula.csv')
+    title = 'Non-discounted true returns for other curricula'
+
+    baseline = [203, 204, 210]
+    pos_stripe = [265, 266, 267]
+    checkers = [268, 269, 270]
+    binary = [271, 272, 273]
+    run_groups = [baseline, pos_stripe, checkers, binary]
+    group_names = ['no CL (baseline)', 'positive stripe reward pattern', 'checkers reward pattern', '+-0.5 tile reward']
+    lines = [500000]
+    df = df[df['Step'] <= 1000000]
+    return df, run_groups, group_names, title, lines
+
+
 def main():
     plt.rcParams.update({'font.size': 15})
 
@@ -175,9 +204,11 @@ def main():
 
     # df, run_groups, group_names, title, lines = fixed_airl()
     # df, run_groups, group_names, title, lines = cl_vs_no_cl()
-    # df, run_groups, group_names, title, lines = diff_swap_point()
+    df, run_groups, group_names, title, lines = diff_swap_point()
     # df, run_groups, group_names, title, lines = fifty_demos()
-    df, run_groups, group_names, title, lines = worse_expert()
+    # df, run_groups, group_names, title, lines = worse_expert()
+    # df, run_groups, group_names, title, lines = sequential()
+    # df, run_groups, group_names, title, lines = other_curricula()
 
     df = clean_df(df)
     process_and_plot(df, run_groups, group_names, smoothing_window, vertical_lines=lines, title=title)

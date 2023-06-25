@@ -32,29 +32,13 @@ def increasing_grid_size_curriculum(test_env):
         last_trained_step = main(logging_start_step=last_trained_step, test_env=test_env)
 
 
-def positive_stripe_reward_curriculum(test_env):
-    share_of_env_steps = [0.3, 0.7]
-    reward_configuration = ['positive_stripe', 'default']
-
-    last_trained_step = 0
-    wandb.config['curriculum'] = 'positive_stripe_reward'
-    wandb.config['reward_configuration'] = reward_configuration
-
-    for i in range(len(share_of_env_steps)):
-        set_experiment_config(reward_configuration=reward_configuration[i])
-        set_curriculum_steps(share_of_env_steps[i], wandb.config['total_steps'])
-        set_curriculum_loading_paths(i)
-        if i == len(share_of_env_steps) - 1:
-            test_env = None
-        last_trained_step = main(logging_start_step=last_trained_step, test_env=test_env)
-
-
-def binary_reward_curriculum(test_env):
+def special_reward_curriculum(test_env, reward_pattern):
+    # positive_stripe, checkers, +-0.5
     share_of_env_steps = [0.5, 0.5]
-    reward_configuration = ['+-0.5', 'default']
+    reward_configuration = [reward_pattern, 'default']
 
     last_trained_step = 0
-    wandb.config['curriculum'] = 'binary_reward'
+    wandb.config['curriculum'] = reward_pattern + '_reward'
     wandb.config['reward_configuration'] = reward_configuration
 
     for i in range(len(share_of_env_steps)):
@@ -125,9 +109,8 @@ if __name__ == '__main__':
     wandb.init(project=WANDB_PROJECT, dir='wandb', config=CONFIG.as_dict(),  tags=["curriculum"])
     wandb.config['total_steps'] = CONFIG.airl.env_steps if CONFIG.curriculum_for_airl else CONFIG.ppo_train.env_steps
     # increasing_grid_size_curriculum(target_env)
-    # positive_stripe_reward_curriculum(target_env)
-    # binary_reward_curriculum(target_env)
+    special_reward_curriculum(target_env, '+-0.5')
     # close_starts_curriculum(target_env)
     # sequential_curriculum(target_env)
-    worse_expert_curriculum(target_env)
+    # worse_expert_curriculum(target_env)
     wandb.finish()
