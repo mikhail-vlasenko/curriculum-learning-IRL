@@ -22,3 +22,13 @@ class FlattenObs(gym.ObservationWrapper):
             obs["time_till_end"],
         ))
         return new_obs
+
+
+class RemoveMission(gym.ObservationWrapper):
+    def __init__(self, env):
+        super().__init__(env)
+        self.observation_space = env.observation_space
+
+    def observation(self, obs):
+        obs["mission"] = ""
+        return obs

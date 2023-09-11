@@ -37,6 +37,14 @@ def test_policy_wandb_helper(ppo, test_env, step, dataset):
 
 
 def main(logging_start_step=0, test_env=None):
+    """
+    The main training loop for PPO.
+    Initializes the environment and the PPO.
+    Trains the policy on the environment specified in the config.
+    Saves the model weights.
+    :param logging_start_step: The step at which to start logging (for continued training)
+    :param test_env: Environment to test on.
+    """
     env = make_env()
 
     n_actions = env.action_space.n
@@ -97,5 +105,5 @@ if __name__ == '__main__':
         tags.append('only_end_reward')
     if 'FlattenObs' in CONFIG.env.wrappers:
         tags.append('flatten_obs')
-    wandb.init(project='PPO', config=CONFIG.as_dict(), tags=tags)
+    wandb.init(project='PPO-minigrid', config=CONFIG.as_dict(), tags=tags)
     main()

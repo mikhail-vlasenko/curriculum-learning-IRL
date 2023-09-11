@@ -6,7 +6,7 @@ import torch
 
 @dataclass
 class EnvConfig:
-    id: str = 'gym_examples/GridWorld-v0'
+    id: str = 'MiniGrid-DoorKey-5x5-v0'
     grid_size: int = 10
     max_steps: int = 30
     obs_dist: int = 2
@@ -24,8 +24,9 @@ class PPOTrainConfig:
     """
     Config for training the expert PPO
     """
-    env_steps: int = 400000
+    env_steps: int = 1000000
     # load_from: str = 'saved_models/rew_per_tile_ppo_expert10.pt'
+    # load_from: str = 'saved_models/just_ppo.pt'
     load_from: str = None
     # save_to: str = f'saved_models/rew_per_tile_ppo_expert{EnvConfig.grid_size}.pt'
     save_to: str = f'saved_models/just_ppo.pt'
@@ -38,7 +39,7 @@ class PPOConfig:
     """
     batch_size: int = 1024
     n_workers: int = 64
-    lr: float = 1e-3 / 2
+    lr: float = 1e-3
     entropy_reg: float = 0.05
     gamma: float = 0.99
     epsilon: float = 0.1
@@ -53,8 +54,9 @@ class DemosConfig:
     n_steps: int = 50000
     # if n_steps is less than the number of steps in the loaded file, this determines which subset is used
     demos_subset_seed: int = 42
-    load_from: str = f'saved_models/rew_per_tile_ppo_expert{EnvConfig.grid_size}.pt'
+    # load_from: str = f'saved_models/rew_per_tile_ppo_expert{EnvConfig.grid_size}.pt'
     # load_from: str = f'saved_models/per_tile_0_rew_non-expert_ppo.pt'
+    load_from: str = f'saved_models/just_ppo.pt'
     save_path: str = None  # None substitutes result of get_demo_name()
 
 
@@ -78,7 +80,7 @@ class AIRLConfig:
 @dataclass
 class DiscriminatorConfig:
     batch_size: int = 1024
-    lr: float = 5e-4 / 2
+    lr: float = 5e-4
     simple_architecture: bool = True
     dimensions: List[int] = field(default_factory=lambda: [256, 256])
 
@@ -123,10 +125,13 @@ def augment_config():
 
 
 def get_demo_name():
-    name = f'demonstrations/ppo_demos_' + \
-           f'size-{CONFIG.env.grid_size}_' + \
-           (f'end-reward_' if "OnlyEndReward" in CONFIG.env.wrappers else 'tile-reward_') + \
-           f'reward-conf-{CONFIG.env.reward_configuration}.pk'
+    if CONFIG.env.id == 'gym_examples/GridWorld-v0':
+        name = f'demonstrations/ppo_demos_' + \
+               f'size-{CONFIG.env.grid_size}_' + \
+               (f'end-reward_' if "OnlyEndReward" in CONFIG.env.wrappers else 'tile-reward_') + \
+               f'reward-conf-{CONFIG.env.reward_configuration}.pk'
+    else:
+        name = f'demonstrations/ppo_demos_{CONFIG.env.id}.pk'
     return name
 
 

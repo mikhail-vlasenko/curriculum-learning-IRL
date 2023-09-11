@@ -14,6 +14,10 @@ from train_ppo import test_policy, test_policy_wandb_helper
 
 
 def init_models(env):
+    """
+    Creates AIRL models, optimizers and an empty dataset object according to config.
+    May load weights from a checkpoint.
+    """
     # Fetch Shapes
     n_actions = env.action_space.n
     obs_shape = env.observation_space.shape
@@ -44,6 +48,9 @@ def init_models(env):
 
 
 def write_dataset(dataset, discriminator, next_state_tensor, state_tensor, state, reward, done, action, log_probs):
+    """
+    Appends a tuple of (state, action, airl_reward, done, log_probs) to the dataset.
+    """
     # Calculate (vectorized) AIRL reward
     airl_action_prob = torch.exp(torch.tensor(log_probs)).to(device).float()
     airl_rewards = discriminator.predict_reward(
@@ -99,6 +106,7 @@ def main(logging_start_step=0, test_env=None):
             state, reward, done, action, log_probs
         )
 
+        # update next_state to the states that have to be acted upon. (replace done states with starting states)
         env.substitute_states(next_state)
         next_state_tensor = torch.tensor(next_state).to(device).float()
 
@@ -127,6 +135,7 @@ def main(logging_start_step=0, test_env=None):
                 batch_size=CONFIG.discriminator.batch_size
             )
 
+            # log and save
             wandb.log({'Discriminator Loss': d_loss,
                        'Fake Accuracy': fake_acc,
                        'Real Accuracy': real_acc}, step=step)
@@ -159,5 +168,5 @@ if __name__ == '__main__':
     if CONFIG.airl.disc_load_from is not None or CONFIG.airl.ppo_load_from is not None:
         tags.append('continued_training')
     # set_experiment_config(expert_data_path='demonstrations/ppo_demos_size-10_tile-reward_reward-conf-default_reward0.pk', demos_n_steps=500)
-    wandb.init(project='AIRL', dir='wandb', config=CONFIG.as_dict(), tags=tags)
+    wandb.init(project='AIRL-minigrid', dir='wandb', config=CONFIG.as_dict(), tags=tags)
     main()

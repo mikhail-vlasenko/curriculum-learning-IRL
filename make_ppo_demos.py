@@ -14,6 +14,9 @@ LOAD_FROM = CONFIG.demos.load_from
 
 
 def make_demos(load_from: str = None):
+    """
+    Generates demonstrations using a loaded PPO policy and writes them to file.
+    """
     if load_from is None:
         load_from = CONFIG.demos.load_from
 

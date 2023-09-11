@@ -1,11 +1,13 @@
 from typing import Type
 
+from minigrid.wrappers import ImgObsWrapper, FlatObsWrapper
+
 from config import CONFIG
 import gym_examples
 from gym_examples.wrappers.relative_position import RelativePosition
 from gym_examples.wrappers.vec_env import VecEnv
 from gym_examples.wrappers.clip_reward import ClipReward
-from gym_examples.wrappers.flatten_obs import FlattenObs
+from gym_examples.wrappers.flatten_obs import FlattenObs, RemoveMission
 from gym_examples.wrappers.only_end_reward import OnlyEndReward
 import gymnasium as gym
 
@@ -24,17 +26,22 @@ def make_env():
 
 def _make_one():
     render = None
-    if CONFIG.env.render:
-        render = 'human'
-    env = gym.make(
-        CONFIG.env.id,
-        grid_size=CONFIG.env.grid_size,
-        max_steps=CONFIG.env.max_steps,
-        obs_dist=CONFIG.env.obs_dist,
-        reward_configuration=CONFIG.env.reward_configuration,
-        spawn_distance=CONFIG.env.spawn_distance,
-        render_mode=render,
-    )
-    for wrapper in CONFIG.env.wrappers:
-        env = eval(wrapper)(env)
+    if CONFIG.env.id == 'gym_examples/GridWorld-v0':
+        if CONFIG.env.render:
+            render = 'human'
+        env = gym.make(
+            CONFIG.env.id,
+            grid_size=CONFIG.env.grid_size,
+            max_steps=CONFIG.env.max_steps,
+            obs_dist=CONFIG.env.obs_dist,
+            reward_configuration=CONFIG.env.reward_configuration,
+            spawn_distance=CONFIG.env.spawn_distance,
+            render_mode=render,
+        )
+        for wrapper in CONFIG.env.wrappers:
+            env = eval(wrapper)(env)
+    else:
+        env = gym.make(CONFIG.env.id, render_mode="rgb_array")
+        env = FlatObsWrapper(RemoveMission(env), maxStrLen=0)
+
     return env
