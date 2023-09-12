@@ -6,10 +6,12 @@ import torch
 
 @dataclass
 class EnvConfig:
-    id: str = 'MiniGrid-DoorKey-5x5-v0'
-    grid_size: int = 10
-    max_steps: int = 30
-    obs_dist: int = 2
+    # "MiniGrid*." will create minigrid using other parameters
+    id: str = 'MiniGrid'  # gym_examples/GridWorld-v0, MiniGrid, or any specific one
+    env_type: str = 'DoorKey'
+    grid_size: int = 8
+    max_steps: int = 30  # not used for minigrid
+    obs_dist: int = 2  # not used for minigrid
     # 'OnlyEndReward', 'RelativePosition', 'FlattenObs'
     wrappers: List[str] = field(default_factory=lambda: ['FlattenObs'])
     vectorized: bool = True
@@ -26,8 +28,8 @@ class PPOTrainConfig:
     """
     env_steps: int = 1000000
     # load_from: str = 'saved_models/rew_per_tile_ppo_expert10.pt'
-    # load_from: str = 'saved_models/just_ppo.pt'
-    load_from: str = None
+    load_from: str = 'saved_models/just_ppo.pt'
+    # load_from: str = None
     # save_to: str = f'saved_models/rew_per_tile_ppo_expert{EnvConfig.grid_size}.pt'
     save_to: str = f'saved_models/just_ppo.pt'
 
@@ -51,7 +53,7 @@ class PPOConfig:
 
 @dataclass
 class DemosConfig:
-    n_steps: int = 50000
+    n_steps: int = 10000
     # if n_steps is less than the number of steps in the loaded file, this determines which subset is used
     demos_subset_seed: int = 42
     # load_from: str = f'saved_models/rew_per_tile_ppo_expert{EnvConfig.grid_size}.pt'
@@ -113,6 +115,9 @@ EXPERT_DATA_SUFFIX = '.pk'
 
 
 def augment_config():
+    if CONFIG.env.id.startswith('MiniGrid'):
+        CONFIG.env.id = f'MiniGrid-{CONFIG.env.env_type}-{CONFIG.env.grid_size}x{CONFIG.env.grid_size}-v0'
+
     if CONFIG.ppo_train.load_from is not None:
         CONFIG.continued_ppo_training = True
     
@@ -160,6 +165,9 @@ def set_experiment_config(
         CONFIG.ppo.lr = ppo_lr
     if demos_n_steps is not None:
         CONFIG.demos.n_steps = demos_n_steps
+
+    augment_config()
+    # augment config may set env id which is used for get_demo_name
     if expert_data_path is not None:
         CONFIG.airl.expert_data_path = expert_data_path
     else:
@@ -187,7 +195,8 @@ def check_config():
     if CONFIG.airl.ppo_load_from is not None and CONFIG.airl.disc_load_from is None or \
             CONFIG.airl.ppo_load_from is None and CONFIG.airl.disc_load_from is not None:
         raise ValueError('Must specify both or neither of ppo_load_from and disc_load_from')
-    if CONFIG.env.max_steps != 3 * CONFIG.env.grid_size and CONFIG.env.max_steps != -1:
+    if CONFIG.env.id == 'gym_examples/GridWorld-v0' and \
+            CONFIG.env.max_steps != 3 * CONFIG.env.grid_size and CONFIG.env.max_steps != -1:
         print('WARNING: max_steps is not 3 * grid_size. This may cause issues with the reward function or demos.')
     if 'FlattenObs' in CONFIG.env.wrappers and CONFIG.ppo.gamma < 0.9:
         print('WARNING: gamma is less than 0.9 for a complex environment.')

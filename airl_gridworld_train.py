@@ -3,6 +3,7 @@ import wandb
 from tqdm import tqdm
 
 from config import *
+from dataclasses import asdict
 from envs.env_factory import make_env
 from gym_examples.wrappers.vec_env import VecEnv
 from irl_algos.airl import *
@@ -88,6 +89,7 @@ def main(logging_start_step=0, test_env=None):
     expert_trajectories = load_expert_trajectories()
 
     # Create Environment
+    print('Creating Environment with ', asdict(CONFIG.env))
     env: VecEnv = make_env()
 
     state, info = env.reset()

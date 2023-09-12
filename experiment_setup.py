@@ -7,24 +7,24 @@ from envs.env_factory import make_env
 
 
 main = airl_main if CONFIG.curriculum_for_airl else ppo_main
-WANDB_PROJECT = 'AIRL' if CONFIG.curriculum_for_airl else 'PPO'
+if CONFIG.env.id.startswith('MiniGrid'):
+    WANDB_PROJECT = 'AIRL-minigrid' if CONFIG.curriculum_for_airl else 'PPO-minigrid'
+else:
+    WANDB_PROJECT = 'AIRL' if CONFIG.curriculum_for_airl else 'PPO'
 
 
 def increasing_grid_size_curriculum(test_env):
     # todo: dynamically trigger next env when trained on current env
-    share_of_env_steps = [0.2, 0.8]
-    grid_sizes = [5, 10]
-    # max_steps = [15, 45]
-    max_steps = [15, 30]
-    lrs = [CONFIG.ppo.lr * 5, CONFIG.ppo.lr]
+    share_of_env_steps = [0.5, 0.5]
+    grid_sizes = [5, 8]
+    lrs = [CONFIG.ppo.lr, CONFIG.ppo.lr]
 
     last_trained_step = 0
     wandb.config['curriculum'] = 'increasing_grid_size'
     wandb.config['grid_sizes'] = grid_sizes
-    wandb.config['max_steps'] = max_steps
 
     for i in range(len(share_of_env_steps)):
-        set_experiment_config(grid_size=grid_sizes[i], max_steps=max_steps[i], ppo_lr=lrs[i])
+        set_experiment_config(grid_size=grid_sizes[i], ppo_lr=lrs[i])
         set_curriculum_steps(share_of_env_steps[i], wandb.config['total_steps'])
         set_curriculum_loading_paths(i)
         if i == len(share_of_env_steps) - 1:
@@ -108,8 +108,8 @@ if __name__ == '__main__':
     target_env = make_env()
     wandb.init(project=WANDB_PROJECT, dir='wandb', config=CONFIG.as_dict(),  tags=["curriculum"])
     wandb.config['total_steps'] = CONFIG.airl.env_steps if CONFIG.curriculum_for_airl else CONFIG.ppo_train.env_steps
-    # increasing_grid_size_curriculum(target_env)
-    special_reward_curriculum(target_env, '+-0.5')
+    increasing_grid_size_curriculum(target_env)
+    # special_reward_curriculum(target_env, '+-0.5')
     # close_starts_curriculum(target_env)
     # sequential_curriculum(target_env)
     # worse_expert_curriculum(target_env)

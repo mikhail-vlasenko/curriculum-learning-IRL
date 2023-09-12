@@ -41,7 +41,8 @@ def _make_one():
         for wrapper in CONFIG.env.wrappers:
             env = eval(wrapper)(env)
     else:
-        env = gym.make(CONFIG.env.id, render_mode="rgb_array")
+        render_mode = "human" if CONFIG.env.render else "rgb_array"
+        env = gym.make(CONFIG.env.id, render_mode=render_mode)
         env = FlatObsWrapper(RemoveMission(env), maxStrLen=0)
 
     return env
